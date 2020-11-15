@@ -1,6 +1,6 @@
 baseURL = "https://sunthera.github.io/"
 languageCode = "en-us"
-title = "Suntera"
+title = "Sunthera"
 theme = "anubis"
 disqusShortname = "suntera-website"
 enableRobotsTXT =  true
