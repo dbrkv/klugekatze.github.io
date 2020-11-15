@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>security on Suntera</title>
+    <title>security on Sunthera</title>
     <link>https://sunthera.github.io/tags/security/</link>
-    <description>Suntera (security)</description>
+    <description>Sunthera (security)</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
     <lastBuildDate>Sun, 15 Nov 2020 00:00:00 +0000</lastBuildDate>

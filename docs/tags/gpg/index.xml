@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>gpg on Suntera</title>
+    <title>gpg on Sunthera</title>
     <link>https://sunthera.github.io/tags/gpg/</link>
-    <description>Suntera (gpg)</description>
+    <description>Sunthera (gpg)</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
     <lastBuildDate>Sun, 15 Nov 2020 00:00:00 +0000</lastBuildDate>
