@@ -7,3 +7,7 @@ html {
   /* font-family: "IBM Plex Mono", monospace; */
   /* font-family: "IBM Plex Sans", sans-serif; */
 }
+
+body {
+  font-size: 21px;
+}
