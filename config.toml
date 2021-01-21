@@ -4,6 +4,7 @@ title = "Sunthera"
 theme = "anubis"
 disqusShortname = "suntera-website"
 enableRobotsTXT =  true
+googleAnalytics = "G-TGZCY92STK"
 
 [taxonomies]
 tag = "tags"
