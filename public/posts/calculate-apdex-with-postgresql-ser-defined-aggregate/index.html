@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+
+
+<html lang="en-us" data-theme="">
+<head>
+    
+        
+<meta charset="utf-8">
+<meta name="HandheldFriendly" content="True">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="no-referrer-when-downgrade">
+
+<title>Create User-Defined PostgreSQL Aggregate to calculate Apdex - Sunthera</title>
+<meta name="description" content="">
+
+<link rel="icon" type="image/x-icon" href="https://sunthera.github.io/favicon.ico">
+<link rel="apple-touch-icon-precomposed" href="https://sunthera.github.io/favicon.png">
+
+
+
+    
+
+
+
+
+
+    
+    
+    
+
+    
+        <link rel="stylesheet" href="https://sunthera.github.io/css/style.bf67952500c522fa4be2b487513979e2a6f82a03826f34db9e4592670b2a1c3b.css" integrity="sha256-v2eVJQDFIvpL4rSHUTl54qb4KgOCbzTbnkWSZwsqHDs=">
+    
+
+
+
+
+
+    
+
+
+
+
+
+    
+        <link rel="stylesheet" href="https://sunthera.github.io/css/kustomization.css?rnd=1626634450">
+    
+
+
+
+
+<meta property="og:title" content="Create User-Defined PostgreSQL Aggregate to calculate Apdex" />
+<meta property="og:description" content="I need a quick and easy Apdex score calculation, existing SQL code works, but it&rsquo;s hard to reuse and maintain.
+In this article we will see how to create custom aggregate function for PostgreSQL to calculate Apdex score.
+What is Apdex? Apdex is an industry standard to measuse user&rsquo;s satisfaction with response time of web applications and services. I&rsquo;m using formula from Wikipedia:
+1  (SatisfiedSount * (ToleratingCount / 2) &#43; (FrustratedCount)) / TotalSamples   General information about PosrgreSQL aggregate functions Aggregate function is called for each row of the table, between calls she maintein an internal state that defines context for function execution." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://sunthera.github.io/posts/calculate-apdex-with-postgresql-ser-defined-aggregate/" />
+<meta property="article:published_time" content="2021-07-18T00:00:00+00:00" />
+<meta property="article:modified_time" content="2021-07-18T00:00:00+00:00" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Create User-Defined PostgreSQL Aggregate to calculate Apdex"/>
+<meta name="twitter:description" content="I need a quick and easy Apdex score calculation, existing SQL code works, but it&rsquo;s hard to reuse and maintain.
+In this article we will see how to create custom aggregate function for PostgreSQL to calculate Apdex score.
+What is Apdex? Apdex is an industry standard to measuse user&rsquo;s satisfaction with response time of web applications and services. I&rsquo;m using formula from Wikipedia:
+1  (SatisfiedSount * (ToleratingCount / 2) &#43; (FrustratedCount)) / TotalSamples   General information about PosrgreSQL aggregate functions Aggregate function is called for each row of the table, between calls she maintein an internal state that defines context for function execution."/>
+
+
+
+
+
+
+
+
+
+    
+</head>
+<body>
+    <a class="skip-main" href="#main">Skip to main content</a>
+    <div class="container">
+        <header class="common-header"> 
+            
+                <h1 class="site-title">
+    <a href="/">Sunthera</a>
+</h1>
+
+    <nav>
+        
+        
+        <a class="" href="https://sunthera.github.io/" title="">Home</a>
+        
+    </nav>
+
+
+            
+        </header>
+        <main id="main" tabindex="-1"> 
+            
+    
+    
+    <article class="post">
+        <header class="post-header">
+            <h1 class="post-title">Create User-Defined PostgreSQL Aggregate to calculate Apdex</h1>
+        </header>
+        <div class="content">
+            <p>I need a quick and easy Apdex score calculation, existing SQL code works, but it&rsquo;s hard to reuse and maintain.</p>
+<p>In this article we will see how to create custom aggregate function for PostgreSQL to calculate Apdex score.</p>
+<h3 id="what-is-apdex">What is Apdex?</h3>
+<p>Apdex is an industry standard to measuse user&rsquo;s satisfaction with response time of web applications and services. I&rsquo;m using formula from <a href="https://en.wikipedia.org/wiki/Apdex">Wikipedia</a>:</p>
+<div class="highlight"><div style="background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="language-txt" data-lang="txt">(SatisfiedSount * (ToleratingCount / 2) + (FrustratedCount)) / TotalSamples
+</code></pre></td></tr></table>
+</div>
+</div><h2 id="general-information--about-posrgresql-aggregate-functions">General information  about PosrgreSQL aggregate functions</h2>
+<p><a href="https://www.postgresql.org/docs/9.5/xaggr.html">Aggregate function</a> is called for each row of the table, between calls she maintein an internal state that defines context for function execution. At the end of execution, aggregate function return final value.</p>
+<h2 id="write-aggregate-function">Write aggregate function</h2>
+<p>Let&rsquo;s take closer look into <code>CREATE AGGREGATE</code></p>
+<div class="highlight"><div style="background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="language-sql" data-lang="sql"><span style="color:#204a87;font-weight:bold">CREATE</span> <span style="color:#204a87;font-weight:bold">AGGREGATE</span> <span style="color:#000">apdex</span><span style="color:#000;font-weight:bold">(</span><span style="color:#204a87">float</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87">float</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">(</span>
+    <span style="color:#000">SFUNC</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#ce5c00;font-weight:bold">&lt;&lt;&lt;</span> <span style="color:#204a87;font-weight:bold">function</span> <span style="color:#000">name</span> <span style="color:#204a87;font-weight:bold">called</span> <span style="color:#204a87;font-weight:bold">for</span> <span style="color:#204a87;font-weight:bold">each</span> <span style="color:#204a87;font-weight:bold">row</span> <span style="color:#ce5c00;font-weight:bold">&gt;&gt;&gt;</span><span style="color:#000;font-weight:bold">,</span>
+    <span style="color:#204a87;font-weight:bold">STYPE</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#ce5c00;font-weight:bold">&lt;&lt;&lt;</span> <span style="color:#204a87;font-weight:bold">type</span> <span style="color:#204a87;font-weight:bold">of</span> <span style="color:#204a87;font-weight:bold">data</span> <span style="color:#000">container</span> <span style="color:#204a87;font-weight:bold">to</span> <span style="color:#000">maintain</span> <span style="color:#204a87;font-weight:bold">state</span><span style="color:#ce5c00;font-weight:bold">&gt;&gt;&gt;</span><span style="color:#000;font-weight:bold">,</span>
+    <span style="color:#000">FINALFUNC</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#ce5c00;font-weight:bold">&lt;&lt;&lt;</span> <span style="color:#204a87;font-weight:bold">function</span> <span style="color:#000">name</span> <span style="color:#204a87;font-weight:bold">to</span> <span style="color:#000">calculate</span> <span style="color:#204a87;font-weight:bold">final</span> <span style="color:#204a87;font-weight:bold">state</span> <span style="color:#000">value</span> <span style="color:#ce5c00;font-weight:bold">&gt;&gt;&gt;</span><span style="color:#000;font-weight:bold">,</span>
+    <span style="color:#000">INITCOND</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#ce5c00;font-weight:bold">&lt;&lt;&lt;</span> <span style="color:#204a87;font-weight:bold">default</span> <span style="color:#000">value</span> <span style="color:#204a87;font-weight:bold">for</span> <span style="color:#204a87;font-weight:bold">data</span> <span style="color:#000">container</span> <span style="color:#ce5c00;font-weight:bold">&gt;&gt;&gt;</span> 
+    <span style="color:#000;font-weight:bold">);</span>
+</code></pre></td></tr></table>
+</div>
+</div><p>So, we need to create custom type for state value and 2 functions to process data.</p>
+<div class="highlight"><div style="background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="language-sql" data-lang="sql"><span style="color:#204a87;font-weight:bold">CREATE</span> <span style="color:#204a87;font-weight:bold">TYPE</span> <span style="color:#000">apdex_state</span> <span style="color:#204a87;font-weight:bold">AS</span>
+<span style="color:#000;font-weight:bold">(</span>
+    <span style="color:#000">satisfied</span>     <span style="color:#204a87">float</span><span style="color:#000;font-weight:bold">,</span>
+    <span style="color:#000">tolerated</span>     <span style="color:#204a87">float</span><span style="color:#000;font-weight:bold">,</span>
+    <span style="color:#000">frustrated</span>    <span style="color:#204a87">float</span><span style="color:#000;font-weight:bold">,</span>
+    <span style="color:#000">samples_count</span> <span style="color:#204a87">integer</span>
+<span style="color:#000;font-weight:bold">);</span>
+</code></pre></td></tr></table>
+</div>
+</div><p>Transition function called for each row. We compare value to threshold and increment particular state property.</p>
+<div class="highlight"><div style="background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">21
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">22
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">23
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">24
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">25
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">26
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">27
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">28
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">29
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">30
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">31
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">32
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">33
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="language-sql" data-lang="sql"><span style="color:#204a87;font-weight:bold">CREATE</span> <span style="color:#204a87;font-weight:bold">OR</span> <span style="color:#204a87;font-weight:bold">REPLACE</span> <span style="color:#204a87;font-weight:bold">FUNCTION</span> <span style="color:#000">apdex_transition</span><span style="color:#000;font-weight:bold">(</span><span style="color:#204a87;font-weight:bold">state</span> <span style="color:#000">apdex_state</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">val</span> <span style="color:#204a87">float</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">threshold</span> <span style="color:#204a87">float</span><span style="color:#000;font-weight:bold">)</span>
+    <span style="color:#204a87;font-weight:bold">RETURNS</span> <span style="color:#000">apdex_state</span> <span style="color:#204a87;font-weight:bold">AS</span>
+<span style="color:#a40000">$$</span>
+
+<span style="color:#204a87;font-weight:bold">BEGIN</span>
+
+    <span style="color:#204a87;font-weight:bold">IF</span> <span style="color:#000">val</span> <span style="color:#ce5c00;font-weight:bold">&lt;=</span> <span style="color:#000">threshold</span> <span style="color:#204a87;font-weight:bold">THEN</span>
+        <span style="color:#204a87;font-weight:bold">RETURN</span> <span style="color:#000;font-weight:bold">(</span>
+                <span style="color:#204a87;font-weight:bold">state</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">satisfied</span> <span style="color:#ce5c00;font-weight:bold">+</span> <span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">,</span>
+                <span style="color:#204a87;font-weight:bold">state</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">tolerated</span><span style="color:#000;font-weight:bold">,</span>
+                <span style="color:#204a87;font-weight:bold">state</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">frustrated</span><span style="color:#000;font-weight:bold">,</span>
+                <span style="color:#204a87;font-weight:bold">state</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">samples_count</span> <span style="color:#ce5c00;font-weight:bold">+</span> <span style="color:#0000cf;font-weight:bold">1</span>
+            <span style="color:#000;font-weight:bold">)::</span><span style="color:#000">apdex_state</span><span style="color:#000;font-weight:bold">;</span>
+    <span style="color:#000">ELSEIF</span> <span style="color:#000">val</span> <span style="color:#ce5c00;font-weight:bold">&gt;</span> <span style="color:#000">threshold</span> <span style="color:#204a87;font-weight:bold">AND</span> <span style="color:#000">val</span> <span style="color:#ce5c00;font-weight:bold">&lt;=</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">threshold</span> <span style="color:#ce5c00;font-weight:bold">*</span> <span style="color:#0000cf;font-weight:bold">4</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#204a87;font-weight:bold">THEN</span>
+        <span style="color:#204a87;font-weight:bold">RETURN</span> <span style="color:#000;font-weight:bold">(</span>
+                <span style="color:#204a87;font-weight:bold">state</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">satisfied</span><span style="color:#000;font-weight:bold">,</span>
+                <span style="color:#204a87;font-weight:bold">state</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">tolerated</span> <span style="color:#ce5c00;font-weight:bold">+</span> <span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">,</span>
+                <span style="color:#204a87;font-weight:bold">state</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">frustrated</span><span style="color:#000;font-weight:bold">,</span>
+                <span style="color:#204a87;font-weight:bold">state</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">samples_count</span> <span style="color:#ce5c00;font-weight:bold">+</span> <span style="color:#0000cf;font-weight:bold">1</span>
+            <span style="color:#000;font-weight:bold">)::</span><span style="color:#000">apdex_state</span><span style="color:#000;font-weight:bold">;</span>
+    <span style="color:#000">ELSEIF</span> <span style="color:#000">val</span> <span style="color:#ce5c00;font-weight:bold">&gt;</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">threshold</span> <span style="color:#ce5c00;font-weight:bold">*</span> <span style="color:#0000cf;font-weight:bold">4</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#204a87;font-weight:bold">THEN</span>
+        <span style="color:#204a87;font-weight:bold">RETURN</span> <span style="color:#000;font-weight:bold">(</span>
+                <span style="color:#204a87;font-weight:bold">state</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">satisfied</span><span style="color:#000;font-weight:bold">,</span>
+                <span style="color:#204a87;font-weight:bold">state</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">tolerated</span><span style="color:#000;font-weight:bold">,</span>
+                <span style="color:#204a87;font-weight:bold">state</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">frustrated</span> <span style="color:#ce5c00;font-weight:bold">+</span> <span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">,</span>
+                <span style="color:#204a87;font-weight:bold">state</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">samples_count</span> <span style="color:#ce5c00;font-weight:bold">+</span> <span style="color:#0000cf;font-weight:bold">1</span>
+            <span style="color:#000;font-weight:bold">)::</span><span style="color:#000">apdex_state</span><span style="color:#000;font-weight:bold">;</span>
+    <span style="color:#204a87;font-weight:bold">END</span> <span style="color:#204a87;font-weight:bold">IF</span><span style="color:#000;font-weight:bold">;</span>
+
+<span style="color:#204a87;font-weight:bold">END</span><span style="color:#000;font-weight:bold">;</span>
+
+<span style="color:#a40000">$$</span>
+    <span style="color:#204a87;font-weight:bold">LANGUAGE</span> <span style="color:#000">plpgsql</span> <span style="color:#204a87;font-weight:bold">IMMUTABLE</span><span style="color:#000;font-weight:bold">;</span>
+</code></pre></td></tr></table>
+</div>
+</div><p>Final value processing function takes  <code>state apdex_state</code> as an argument and applies formula to calculate Apdex score.</p>
+<div class="highlight"><div style="background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="language-sql" data-lang="sql"><span style="color:#204a87;font-weight:bold">CREATE</span> <span style="color:#204a87;font-weight:bold">OR</span> <span style="color:#204a87;font-weight:bold">REPLACE</span> <span style="color:#204a87;font-weight:bold">FUNCTION</span> <span style="color:#000">apdex_final</span><span style="color:#000;font-weight:bold">(</span><span style="color:#204a87;font-weight:bold">state</span> <span style="color:#000">apdex_state</span><span style="color:#000;font-weight:bold">)</span>
+    <span style="color:#204a87;font-weight:bold">RETURNS</span> <span style="color:#204a87">float</span> <span style="color:#204a87;font-weight:bold">AS</span>
+<span style="color:#a40000">$$</span>
+<span style="color:#204a87;font-weight:bold">BEGIN</span>
+    <span style="color:#204a87;font-weight:bold">IF</span> <span style="color:#204a87;font-weight:bold">state</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">samples_count</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#0000cf;font-weight:bold">0</span> <span style="color:#204a87;font-weight:bold">THEN</span>
+        <span style="color:#204a87;font-weight:bold">RETURN</span> <span style="color:#0000cf;font-weight:bold">0</span><span style="color:#000;font-weight:bold">;</span>
+    <span style="color:#204a87;font-weight:bold">END</span> <span style="color:#204a87;font-weight:bold">IF</span><span style="color:#000;font-weight:bold">;</span>
+    <span style="color:#204a87;font-weight:bold">RETURN</span> <span style="color:#000;font-weight:bold">(</span>
+            <span style="color:#000;font-weight:bold">(</span><span style="color:#204a87;font-weight:bold">state</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">satisfied</span> <span style="color:#ce5c00;font-weight:bold">+</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#204a87;font-weight:bold">state</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">tolerated</span> <span style="color:#ce5c00;font-weight:bold">/</span> <span style="color:#0000cf;font-weight:bold">2</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#ce5c00;font-weight:bold">+</span> <span style="color:#204a87;font-weight:bold">state</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">frustrated</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#ce5c00;font-weight:bold">/</span> <span style="color:#204a87;font-weight:bold">state</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">samples_count</span>
+        <span style="color:#000;font-weight:bold">)::</span><span style="color:#204a87">float</span><span style="color:#000;font-weight:bold">;</span>
+<span style="color:#204a87;font-weight:bold">END</span><span style="color:#000;font-weight:bold">;</span>
+<span style="color:#a40000">$$</span>
+    <span style="color:#204a87;font-weight:bold">LANGUAGE</span> <span style="color:#000">plpgsql</span> <span style="color:#204a87;font-weight:bold">IMMUTABLE</span><span style="color:#000;font-weight:bold">;</span>
+</code></pre></td></tr></table>
+</div>
+</div><p>Create aggregate with names of functions and new type defined above</p>
+<div class="highlight"><div style="background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="language-sql" data-lang="sql"><span style="color:#204a87;font-weight:bold">CREATE</span> <span style="color:#204a87;font-weight:bold">AGGREGATE</span> <span style="color:#000">apdex</span><span style="color:#000;font-weight:bold">(</span><span style="color:#204a87">float</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87">float</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">(</span>
+    <span style="color:#000">SFUNC</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#000">apdex_transition</span><span style="color:#000;font-weight:bold">,</span>
+    <span style="color:#204a87;font-weight:bold">STYPE</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#000">apdex_state</span><span style="color:#000;font-weight:bold">,</span>
+    <span style="color:#000">FINALFUNC</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#000">apdex_final</span><span style="color:#000;font-weight:bold">,</span>
+    <span style="color:#000">INITCOND</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#4e9a06">&#39;(0, 0, 0, 0)&#39;</span>
+    <span style="color:#000;font-weight:bold">);</span>
+</code></pre></td></tr></table>
+</div>
+</div><p>That&rsquo;s all.</p>
+<p>Now, instean of complex SQL we will use <code>apdex(value, threshold)</code>, like this:</p>
+<div class="highlight"><div style="background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="language-sql" data-lang="sql"><span style="color:#204a87;font-weight:bold">SELECT</span> <span style="color:#000">apdex</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">total_time</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#0000cf;font-weight:bold">0</span><span style="color:#000;font-weight:bold">.</span><span style="color:#0000cf;font-weight:bold">7</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#204a87;font-weight:bold">AS</span> <span style="color:#000">apdex_score</span> <span style="color:#204a87;font-weight:bold">FROM</span> <span style="color:#000">requests</span><span style="color:#000;font-weight:bold">;</span>
+
+    <span style="color:#000">apdex_score</span>     
+<span style="color:#8f5902;font-style:italic">--------------------
+</span><span style="color:#8f5902;font-style:italic"></span> <span style="color:#0000cf;font-weight:bold">0</span><span style="color:#000;font-weight:bold">.</span><span style="color:#0000cf;font-weight:bold">8409090909090909</span>
+<span style="color:#000;font-weight:bold">(</span><span style="color:#0000cf;font-weight:bold">1</span> <span style="color:#204a87;font-weight:bold">row</span><span style="color:#000;font-weight:bold">)</span>
+</code></pre></td></tr></table>
+</div>
+</div><p>Works like a charm!
+Awesome!</p>
+<p>Full source code of an aggregate:</p>
+<div class="highlight"><div style="background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">21
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">22
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">23
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">24
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">25
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">26
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">27
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">28
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">29
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">30
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">31
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">32
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">33
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">34
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">35
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">36
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">37
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">38
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">39
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">40
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">41
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">42
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">43
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">44
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">45
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">46
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">47
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">48
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">49
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">50
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">51
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">52
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">53
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">54
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">55
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">56
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">57
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">58
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">59
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">60
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">61
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">62
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">63
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">64
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">65
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">66
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">67
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="language-sql" data-lang="sql"><span style="color:#204a87;font-weight:bold">DROP</span> <span style="color:#204a87;font-weight:bold">TYPE</span> <span style="color:#000">apdex_state</span><span style="color:#000;font-weight:bold">;</span>
+<span style="color:#204a87;font-weight:bold">CREATE</span> <span style="color:#204a87;font-weight:bold">TYPE</span> <span style="color:#000">apdex_state</span> <span style="color:#204a87;font-weight:bold">AS</span>
+<span style="color:#000;font-weight:bold">(</span>
+    <span style="color:#000">satisfied</span>     <span style="color:#204a87">float</span><span style="color:#000;font-weight:bold">,</span>
+    <span style="color:#000">tolerated</span>     <span style="color:#204a87">float</span><span style="color:#000;font-weight:bold">,</span>
+    <span style="color:#000">frustrated</span>    <span style="color:#204a87">float</span><span style="color:#000;font-weight:bold">,</span>
+    <span style="color:#000">samples_count</span> <span style="color:#204a87">integer</span>
+<span style="color:#000;font-weight:bold">);</span>
+
+
+<span style="color:#204a87;font-weight:bold">CREATE</span> <span style="color:#204a87;font-weight:bold">OR</span> <span style="color:#204a87;font-weight:bold">REPLACE</span> <span style="color:#204a87;font-weight:bold">FUNCTION</span> <span style="color:#000">apdex_transition</span><span style="color:#000;font-weight:bold">(</span><span style="color:#204a87;font-weight:bold">state</span> <span style="color:#000">apdex_state</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">val</span> <span style="color:#204a87">float</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">threshold</span> <span style="color:#204a87">float</span><span style="color:#000;font-weight:bold">)</span>
+    <span style="color:#204a87;font-weight:bold">RETURNS</span> <span style="color:#000">apdex_state</span> <span style="color:#204a87;font-weight:bold">AS</span>
+<span style="color:#a40000">$$</span>
+
+<span style="color:#204a87;font-weight:bold">BEGIN</span>
+
+    <span style="color:#204a87;font-weight:bold">IF</span> <span style="color:#000">val</span> <span style="color:#ce5c00;font-weight:bold">&lt;=</span> <span style="color:#000">threshold</span> <span style="color:#204a87;font-weight:bold">THEN</span>
+        <span style="color:#204a87;font-weight:bold">RETURN</span> <span style="color:#000;font-weight:bold">(</span>
+                <span style="color:#204a87;font-weight:bold">state</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">satisfied</span> <span style="color:#ce5c00;font-weight:bold">+</span> <span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">,</span>
+                <span style="color:#204a87;font-weight:bold">state</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">tolerated</span><span style="color:#000;font-weight:bold">,</span>
+                <span style="color:#204a87;font-weight:bold">state</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">frustrated</span><span style="color:#000;font-weight:bold">,</span>
+                <span style="color:#204a87;font-weight:bold">state</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">samples_count</span> <span style="color:#ce5c00;font-weight:bold">+</span> <span style="color:#0000cf;font-weight:bold">1</span>
+            <span style="color:#000;font-weight:bold">)::</span><span style="color:#000">apdex_state</span><span style="color:#000;font-weight:bold">;</span>
+    <span style="color:#000">ELSEIF</span> <span style="color:#000">val</span> <span style="color:#ce5c00;font-weight:bold">&gt;</span> <span style="color:#000">threshold</span> <span style="color:#204a87;font-weight:bold">AND</span> <span style="color:#000">val</span> <span style="color:#ce5c00;font-weight:bold">&lt;=</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">threshold</span> <span style="color:#ce5c00;font-weight:bold">*</span> <span style="color:#0000cf;font-weight:bold">4</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#204a87;font-weight:bold">THEN</span>
+        <span style="color:#204a87;font-weight:bold">RETURN</span> <span style="color:#000;font-weight:bold">(</span>
+                <span style="color:#204a87;font-weight:bold">state</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">satisfied</span><span style="color:#000;font-weight:bold">,</span>
+                <span style="color:#204a87;font-weight:bold">state</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">tolerated</span> <span style="color:#ce5c00;font-weight:bold">+</span> <span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">,</span>
+                <span style="color:#204a87;font-weight:bold">state</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">frustrated</span><span style="color:#000;font-weight:bold">,</span>
+                <span style="color:#204a87;font-weight:bold">state</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">samples_count</span> <span style="color:#ce5c00;font-weight:bold">+</span> <span style="color:#0000cf;font-weight:bold">1</span>
+            <span style="color:#000;font-weight:bold">)::</span><span style="color:#000">apdex_state</span><span style="color:#000;font-weight:bold">;</span>
+    <span style="color:#000">ELSEIF</span> <span style="color:#000">val</span> <span style="color:#ce5c00;font-weight:bold">&gt;</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">threshold</span> <span style="color:#ce5c00;font-weight:bold">*</span> <span style="color:#0000cf;font-weight:bold">4</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#204a87;font-weight:bold">THEN</span>
+        <span style="color:#204a87;font-weight:bold">RETURN</span> <span style="color:#000;font-weight:bold">(</span>
+                <span style="color:#204a87;font-weight:bold">state</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">satisfied</span><span style="color:#000;font-weight:bold">,</span>
+                <span style="color:#204a87;font-weight:bold">state</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">tolerated</span><span style="color:#000;font-weight:bold">,</span>
+                <span style="color:#204a87;font-weight:bold">state</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">frustrated</span> <span style="color:#ce5c00;font-weight:bold">+</span> <span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">,</span>
+                <span style="color:#204a87;font-weight:bold">state</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">samples_count</span> <span style="color:#ce5c00;font-weight:bold">+</span> <span style="color:#0000cf;font-weight:bold">1</span>
+            <span style="color:#000;font-weight:bold">)::</span><span style="color:#000">apdex_state</span><span style="color:#000;font-weight:bold">;</span>
+    <span style="color:#204a87;font-weight:bold">END</span> <span style="color:#204a87;font-weight:bold">IF</span><span style="color:#000;font-weight:bold">;</span>
+
+<span style="color:#204a87;font-weight:bold">END</span><span style="color:#000;font-weight:bold">;</span>
+
+<span style="color:#a40000">$$</span>
+    <span style="color:#204a87;font-weight:bold">LANGUAGE</span> <span style="color:#000">plpgsql</span> <span style="color:#204a87;font-weight:bold">IMMUTABLE</span><span style="color:#000;font-weight:bold">;</span>
+
+
+<span style="color:#204a87;font-weight:bold">CREATE</span> <span style="color:#204a87;font-weight:bold">OR</span> <span style="color:#204a87;font-weight:bold">REPLACE</span> <span style="color:#204a87;font-weight:bold">FUNCTION</span> <span style="color:#000">apdex_final</span><span style="color:#000;font-weight:bold">(</span><span style="color:#204a87;font-weight:bold">state</span> <span style="color:#000">apdex_state</span><span style="color:#000;font-weight:bold">)</span>
+    <span style="color:#204a87;font-weight:bold">RETURNS</span> <span style="color:#204a87">float</span> <span style="color:#204a87;font-weight:bold">AS</span>
+<span style="color:#a40000">$$</span>
+<span style="color:#204a87;font-weight:bold">BEGIN</span>
+    <span style="color:#204a87;font-weight:bold">IF</span> <span style="color:#204a87;font-weight:bold">state</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">samples_count</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#0000cf;font-weight:bold">0</span> <span style="color:#204a87;font-weight:bold">THEN</span>
+        <span style="color:#204a87;font-weight:bold">RETURN</span> <span style="color:#0000cf;font-weight:bold">0</span><span style="color:#000;font-weight:bold">;</span>
+    <span style="color:#204a87;font-weight:bold">END</span> <span style="color:#204a87;font-weight:bold">IF</span><span style="color:#000;font-weight:bold">;</span>
+    <span style="color:#204a87;font-weight:bold">RETURN</span> <span style="color:#000;font-weight:bold">(</span>
+            <span style="color:#000;font-weight:bold">(</span><span style="color:#204a87;font-weight:bold">state</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">satisfied</span> <span style="color:#ce5c00;font-weight:bold">+</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#204a87;font-weight:bold">state</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">tolerated</span> <span style="color:#ce5c00;font-weight:bold">/</span> <span style="color:#0000cf;font-weight:bold">2</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#ce5c00;font-weight:bold">+</span> <span style="color:#204a87;font-weight:bold">state</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">frustrated</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#ce5c00;font-weight:bold">/</span> <span style="color:#204a87;font-weight:bold">state</span><span style="color:#000;font-weight:bold">.</span><span style="color:#000">samples_count</span>
+        <span style="color:#000;font-weight:bold">)::</span><span style="color:#204a87">float</span><span style="color:#000;font-weight:bold">;</span>
+<span style="color:#204a87;font-weight:bold">END</span><span style="color:#000;font-weight:bold">;</span>
+<span style="color:#a40000">$$</span>
+    <span style="color:#204a87;font-weight:bold">LANGUAGE</span> <span style="color:#000">plpgsql</span> <span style="color:#204a87;font-weight:bold">IMMUTABLE</span><span style="color:#000;font-weight:bold">;</span>
+
+<span style="color:#204a87;font-weight:bold">DROP</span> <span style="color:#204a87;font-weight:bold">AGGREGATE</span> <span style="color:#204a87;font-weight:bold">IF</span> <span style="color:#204a87;font-weight:bold">EXISTS</span> <span style="color:#000">apdex</span><span style="color:#000;font-weight:bold">(</span><span style="color:#204a87">float</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87">float</span><span style="color:#000;font-weight:bold">);</span>
+<span style="color:#204a87;font-weight:bold">CREATE</span> <span style="color:#204a87;font-weight:bold">AGGREGATE</span> <span style="color:#000">apdex</span><span style="color:#000;font-weight:bold">(</span><span style="color:#204a87">float</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87">float</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">(</span>
+    <span style="color:#000">SFUNC</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#000">apdex_transition</span><span style="color:#000;font-weight:bold">,</span>
+    <span style="color:#204a87;font-weight:bold">STYPE</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#000">apdex_state</span><span style="color:#000;font-weight:bold">,</span>
+    <span style="color:#000">FINALFUNC</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#000">apdex_final</span><span style="color:#000;font-weight:bold">,</span>
+    <span style="color:#000">INITCOND</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#4e9a06">&#39;(0, 0, 0, 0)&#39;</span>
+    <span style="color:#000;font-weight:bold">);</span>
+
+</code></pre></td></tr></table>
+</div>
+</div>
+        </div>
+        
+
+
+<div class="post-info">
+    
+        <div class="post-date">2021-07-18</div>
+    
+    <div class="post-taxonomies">
+        
+            
+                <ul class="post-tags">
+                    
+                        <li><a href="https://sunthera.github.io/tags/database">#database</a></li>
+                    
+                        <li><a href="https://sunthera.github.io/tags/postgresql">#postgresql</a></li>
+                    
+                        <li><a href="https://sunthera.github.io/tags/sql">#sql</a></li>
+                    
+                </ul>
+        
+    </div>
+</div>
+
+    </article>
+
+    
+
+    
+        <div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+    
+    
+    
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "suntera-website" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+    
+
+
+        </main>
+        
+            <footer class="common-footer">
+    
+    
+
+    <div class="common-footer-bottom">
+        
+        <div class="copyright">
+            <p>© 2021<br>
+            Powered by <a target="_blank" rel="noopener noreferrer" href="https://gohugo.io/">Hugo</a>, theme <a target="_blank" rel="noopener noreferrer" href="https://github.com/mitrichius/hugo-theme-anubis">Anubis</a>.
+            </p>  
+        </div> 
+
+        
+
+
+   
+    </div>
+</footer>
+
+        
+    </div>
+</body>
+</html>

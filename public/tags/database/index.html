@@ -10,10 +10,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="referrer" content="no-referrer-when-downgrade">
 
-<title>shell - Sunthera</title>
+<title>database - Sunthera</title>
 <meta name="description" content="">
 
-<link rel="alternate" type="application/rss+xml" href="https://sunthera.github.io/tags/shell/index.xml" title="Sunthera" />
+<link rel="alternate" type="application/rss+xml" href="https://sunthera.github.io/tags/database/index.xml" title="Sunthera" />
 <link rel="icon" type="image/x-icon" href="https://sunthera.github.io/favicon.ico">
 <link rel="apple-touch-icon-precomposed" href="https://sunthera.github.io/favicon.png">
 
@@ -50,14 +50,14 @@
 
 
 
-<meta property="og:title" content="shell" />
+<meta property="og:title" content="database" />
 <meta property="og:description" content="" />
 <meta property="og:type" content="website" />
-<meta property="og:url" content="https://sunthera.github.io/tags/shell/" />
-<meta property="og:updated_time" content="2020-11-15T00:00:00+00:00" />
+<meta property="og:url" content="https://sunthera.github.io/tags/database/" />
+<meta property="og:updated_time" content="2021-07-18T00:00:00+00:00" />
 
 <meta name="twitter:card" content="summary"/>
-<meta name="twitter:title" content="shell"/>
+<meta name="twitter:title" content="database"/>
 <meta name="twitter:description" content=""/>
 
 
@@ -91,24 +91,25 @@
         </header>
         <main id="main" tabindex="-1"> 
             
-    <h1>Tag: shell</h1>
+    <h1>Tag: database</h1>
     <div class="post-info">
         <a href="https://sunthera.github.io/tags">To all tags</a>
     </div>
     
         <article class="post-list">
     <header class="post-header">
-        <h1 class="post-title"><a href="/posts/generate-secure-passwords-and-store-them-on-paper/">Generate secure passwords with Linux or Mac OS and store them safely …at paper</a></h1>
+        <h1 class="post-title"><a href="/posts/calculate-apdex-with-postgresql-ser-defined-aggregate/">Create User-Defined PostgreSQL Aggregate to calculate Apdex</a></h1>
     </header>
 
     <div class="content post-summary">
-        This article covers problem or storing passphrase securely. It&rsquo;s usually a common use case create strength password, but it&rsquo;s hard to remember them. Very often, such passwords are stored inside text files in a plain form. Good, if such files are located on encrypted storage.
-How to solve this problem? Secret sharing to the rescue!
-Secret sharing is a method of splitting a secret into several parts and distributing them across multiple locations or even secret holders.
+        I need a quick and easy Apdex score calculation, existing SQL code works, but it&rsquo;s hard to reuse and maintain.
+In this article we will see how to create custom aggregate function for PostgreSQL to calculate Apdex score.
+What is Apdex? Apdex is an industry standard to measuse user&rsquo;s satisfaction with response time of web applications and services. I&rsquo;m using formula from Wikipedia:
+1  (SatisfiedSount * (ToleratingCount / 2) + (FrustratedCount)) / TotalSamples   General information about PosrgreSQL aggregate functions Aggregate function is called for each row of the table, between calls she maintein an internal state that defines context for function execution.
     </div>
     
         <div class="read-more">
-            <a href="/posts/generate-secure-passwords-and-store-them-on-paper/">Read more</a>
+            <a href="/posts/calculate-apdex-with-postgresql-ser-defined-aggregate/">Read more</a>
         </div>
     
     
@@ -117,20 +118,18 @@ Secret sharing is a method of splitting a secret into several parts and distribu
 
 <div class="post-info">
     
-        <div class="post-date">2020-11-15</div>
+        <div class="post-date">2021-07-18</div>
     
     <div class="post-taxonomies">
         
             
                 <ul class="post-tags">
                     
-                        <li><a href="https://sunthera.github.io/tags/shell">#shell</a></li>
+                        <li><a href="https://sunthera.github.io/tags/database">#database</a></li>
                     
-                        <li><a href="https://sunthera.github.io/tags/cli">#cli</a></li>
+                        <li><a href="https://sunthera.github.io/tags/postgresql">#postgresql</a></li>
                     
-                        <li><a href="https://sunthera.github.io/tags/gpg">#gpg</a></li>
-                    
-                        <li><a href="https://sunthera.github.io/tags/security">#security</a></li>
+                        <li><a href="https://sunthera.github.io/tags/sql">#sql</a></li>
                     
                 </ul>
         
