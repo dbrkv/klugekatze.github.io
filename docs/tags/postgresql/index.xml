@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Posts on Sunthera</title>
-    <link>https://sunthera.github.io/posts/</link>
-    <description>Sunthera (Posts)</description>
+    <title>postgresql on Sunthera</title>
+    <link>https://sunthera.github.io/tags/postgresql/</link>
+    <description>Sunthera (postgresql)</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
     <lastBuildDate>Sun, 18 Jul 2021 00:00:00 +0000</lastBuildDate>
     
-    <atom:link href="https://sunthera.github.io/posts/index.xml" rel="self" type="application/rss+xml" />
+    <atom:link href="https://sunthera.github.io/tags/postgresql/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
@@ -361,125 +361,6 @@ Awesome!&lt;/p&gt;
 &lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
 &lt;/div&gt;
 &lt;/div&gt;</description>
-    </item>
-    
-    <item>
-      <title>Generate secure passwords with Linux or Mac OS and store them safely …at paper</title>
-      <link>https://sunthera.github.io/posts/generate-secure-passwords-and-store-them-on-paper/</link>
-      <pubDate>Sun, 15 Nov 2020 00:00:00 +0000</pubDate>
-      
-      <guid>https://sunthera.github.io/posts/generate-secure-passwords-and-store-them-on-paper/</guid>
-      <description>&lt;p&gt;&lt;img src=&#34;https://sunthera.github.io/assets/bash-script-split-generate-password-and-render-qr-codes.png&#34; alt=&#34;Render generateg secret shares as QP codes&#34;&gt;&lt;/p&gt;
-&lt;p&gt;This article covers problem or storing passphrase securely. It&amp;rsquo;s usually a common use case create strength password, but it&amp;rsquo;s hard to remember them. Very often, such passwords are stored inside text files in a plain form. Good, if such files are located on encrypted storage.&lt;/p&gt;
-&lt;p&gt;How to solve this problem? Secret sharing to the rescue!&lt;/p&gt;
-&lt;p&gt;Secret sharing is a method of splitting a secret into several parts and distributing them across multiple locations or even secret holders. We will use Shamir&amp;rsquo;s Secret Sharing algorithm to split secret for further sharing. This algorithm adding additional layer of security, where original secret parts encoded into hashes and secret holders do not know even part of original plain secret. Later, secret can be reconstructed from parts.&lt;/p&gt;
-&lt;p&gt;Let&amp;rsquo;s get started!&lt;/p&gt;
-&lt;h3 id=&#34;install-required-dependencies&#34;&gt;Install required dependencies&lt;/h3&gt;
-&lt;p&gt;&lt;strong&gt;Ubuntu/Debian&lt;/strong&gt;&lt;/p&gt;
-&lt;div class=&#34;highlight&#34;&gt;&lt;div style=&#34;background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2&#34;&gt;
-&lt;table style=&#34;border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;&#34;&gt;&lt;tr&gt;&lt;td style=&#34;vertical-align:top;padding:0;margin:0;border:0;&#34;&gt;
-&lt;pre style=&#34;background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2&#34;&gt;&lt;code&gt;&lt;span style=&#34;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f&#34; id=&#34;1&#34;&gt;&lt;a style=&#34;outline: none; text-decoration:none; color:inherit&#34; href=&#34;#1&#34;&gt;1&lt;/a&gt;
-&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
-&lt;td style=&#34;vertical-align:top;padding:0;margin:0;border:0;;width:100%&#34;&gt;
-&lt;pre style=&#34;background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;sudo apt install ssss qrencode gpg
-&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
-&lt;/div&gt;
-&lt;/div&gt;&lt;p&gt;&lt;strong&gt;Mac OS&lt;/strong&gt;&lt;/p&gt;
-&lt;div class=&#34;highlight&#34;&gt;&lt;div style=&#34;background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2&#34;&gt;
-&lt;table style=&#34;border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;&#34;&gt;&lt;tr&gt;&lt;td style=&#34;vertical-align:top;padding:0;margin:0;border:0;&#34;&gt;
-&lt;pre style=&#34;background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2&#34;&gt;&lt;code&gt;&lt;span style=&#34;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f&#34; id=&#34;1&#34;&gt;&lt;a style=&#34;outline: none; text-decoration:none; color:inherit&#34; href=&#34;#1&#34;&gt;1&lt;/a&gt;
-&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
-&lt;td style=&#34;vertical-align:top;padding:0;margin:0;border:0;;width:100%&#34;&gt;
-&lt;pre style=&#34;background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2&#34;&gt;&lt;code class=&#34;language-shell&#34; data-lang=&#34;shell&#34;&gt;brew install ssss qrencode gpg
-&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
-&lt;/div&gt;
-&lt;/div&gt;&lt;h3 id=&#34;generate-password-secret-and-split-secret-intoshares&#34;&gt;Generate password secret and split secret into shares&lt;/h3&gt;
-&lt;p&gt;First, generate password using &lt;a href=&#34;https://gnupg.org/&#34;&gt;GPG&lt;/a&gt;.&lt;/p&gt;
-&lt;div class=&#34;highlight&#34;&gt;&lt;div style=&#34;background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2&#34;&gt;
-&lt;table style=&#34;border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;&#34;&gt;&lt;tr&gt;&lt;td style=&#34;vertical-align:top;padding:0;margin:0;border:0;&#34;&gt;
-&lt;pre style=&#34;background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2&#34;&gt;&lt;code&gt;&lt;span style=&#34;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f&#34; id=&#34;1&#34;&gt;&lt;a style=&#34;outline: none; text-decoration:none; color:inherit&#34; href=&#34;#1&#34;&gt;1&lt;/a&gt;
-&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
-&lt;td style=&#34;vertical-align:top;padding:0;margin:0;border:0;;width:100%&#34;&gt;
-&lt;pre style=&#34;background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2&#34;&gt;&lt;code class=&#34;language-shell&#34; data-lang=&#34;shell&#34;&gt;&lt;span style=&#34;color:#000&#34;&gt;SECRET_PASSWORD&lt;/span&gt;&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;$(&lt;/span&gt;gpg --armor --gen-random &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;2&lt;/span&gt; 18&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;)&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
-&lt;/div&gt;
-&lt;/div&gt;&lt;p&gt;Command generates binary random data and transforms it into printable ASCII characters (ASCII armor) with base64 encoding. I&amp;rsquo;m used 18 chars for password length to avoid adding &lt;code&gt;==&lt;/code&gt; output padding characters to the final string.&lt;/p&gt;
-&lt;p&gt;Next, split secret into 4 parts, with 3 shares necessary to reconstruct secret. Option &lt;code&gt;-w secret&lt;/code&gt; prefixes related shared together. At least 3 valid parts are required to successfully reconstruct secret.&lt;/p&gt;
-&lt;div class=&#34;highlight&#34;&gt;&lt;div style=&#34;background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2&#34;&gt;
-&lt;table style=&#34;border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;&#34;&gt;&lt;tr&gt;&lt;td style=&#34;vertical-align:top;padding:0;margin:0;border:0;&#34;&gt;
-&lt;pre style=&#34;background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2&#34;&gt;&lt;code&gt;&lt;span style=&#34;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f&#34; id=&#34;1&#34;&gt;&lt;a style=&#34;outline: none; text-decoration:none; color:inherit&#34; href=&#34;#1&#34;&gt;1&lt;/a&gt;
-&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
-&lt;td style=&#34;vertical-align:top;padding:0;margin:0;border:0;;width:100%&#34;&gt;
-&lt;pre style=&#34;background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2&#34;&gt;&lt;code class=&#34;language-shell&#34; data-lang=&#34;shell&#34;&gt;&lt;span style=&#34;color:#204a87&#34;&gt;echo&lt;/span&gt; &lt;span style=&#34;color:#000&#34;&gt;$SECRET_PASSWORD&lt;/span&gt; &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt; ssss-split -n &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;4&lt;/span&gt; -t &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;3&lt;/span&gt; -w secret
-&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
-&lt;/div&gt;
-&lt;/div&gt;&lt;p&gt;Command output:&lt;/p&gt;
-&lt;div class=&#34;highlight&#34;&gt;&lt;div style=&#34;background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2&#34;&gt;
-&lt;table style=&#34;border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;&#34;&gt;&lt;tr&gt;&lt;td style=&#34;vertical-align:top;padding:0;margin:0;border:0;&#34;&gt;
-&lt;pre style=&#34;background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2&#34;&gt;&lt;code&gt;&lt;span style=&#34;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f&#34; id=&#34;1&#34;&gt;&lt;a style=&#34;outline: none; text-decoration:none; color:inherit&#34; href=&#34;#1&#34;&gt;1&lt;/a&gt;
-&lt;/span&gt;&lt;span style=&#34;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f&#34; id=&#34;2&#34;&gt;&lt;a style=&#34;outline: none; text-decoration:none; color:inherit&#34; href=&#34;#2&#34;&gt;2&lt;/a&gt;
-&lt;/span&gt;&lt;span style=&#34;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f&#34; id=&#34;3&#34;&gt;&lt;a style=&#34;outline: none; text-decoration:none; color:inherit&#34; href=&#34;#3&#34;&gt;3&lt;/a&gt;
-&lt;/span&gt;&lt;span style=&#34;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f&#34; id=&#34;4&#34;&gt;&lt;a style=&#34;outline: none; text-decoration:none; color:inherit&#34; href=&#34;#4&#34;&gt;4&lt;/a&gt;
-&lt;/span&gt;&lt;span style=&#34;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f&#34; id=&#34;5&#34;&gt;&lt;a style=&#34;outline: none; text-decoration:none; color:inherit&#34; href=&#34;#5&#34;&gt;5&lt;/a&gt;
-&lt;/span&gt;&lt;span style=&#34;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f&#34; id=&#34;6&#34;&gt;&lt;a style=&#34;outline: none; text-decoration:none; color:inherit&#34; href=&#34;#6&#34;&gt;6&lt;/a&gt;
-&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
-&lt;td style=&#34;vertical-align:top;padding:0;margin:0;border:0;;width:100%&#34;&gt;
-&lt;pre style=&#34;background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2&#34;&gt;&lt;code class=&#34;language-txt&#34; data-lang=&#34;txt&#34;&gt;Generating shares using a (3,4) scheme with dynamic security level.
-Enter the secret, at most 128 ASCII characters: Using a 192 bit security level.
-secret-1–4ca1b67c6f42b2f55f37a114ca1da1659d8fd0c6dc21fb6e
-secret-2–60537b3ff6a8be9693ad6e1bcaa42cae81e4d4eb5c44ec83
-secret-3-abd2834094905b0e04f3c815b2435f761cf7460f51f0a586
-secret-4–8805337204530fb2aa05416e64074810ef13a3b790d03e75
-&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
-&lt;/div&gt;
-&lt;/div&gt;&lt;p&gt;Render hashes into QR codes&lt;/p&gt;
-&lt;div class=&#34;highlight&#34;&gt;&lt;div style=&#34;background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2&#34;&gt;
-&lt;table style=&#34;border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;&#34;&gt;&lt;tr&gt;&lt;td style=&#34;vertical-align:top;padding:0;margin:0;border:0;&#34;&gt;
-&lt;pre style=&#34;background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2&#34;&gt;&lt;code&gt;&lt;span style=&#34;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f&#34; id=&#34;1&#34;&gt;&lt;a style=&#34;outline: none; text-decoration:none; color:inherit&#34; href=&#34;#1&#34;&gt;1&lt;/a&gt;
-&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
-&lt;td style=&#34;vertical-align:top;padding:0;margin:0;border:0;;width:100%&#34;&gt;
-&lt;pre style=&#34;background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2&#34;&gt;&lt;code class=&#34;language-shell&#34; data-lang=&#34;shell&#34;&gt;qrencode &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;secret-1–4ca1b67c6f42b2f55f37a114ca1da1659d8fd0c6dc21fb6e&amp;#34;&lt;/span&gt; -t ANSIUTF8
-&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
-&lt;/div&gt;
-&lt;/div&gt;&lt;p&gt;Try to reconstruct secret from part, with command &lt;code&gt;ssss-combine -t 3&lt;/code&gt;. Use any 3 shares in any order to decrypt secret (note: parts are joined with new line &lt;code&gt;\n&lt;/code&gt;).&lt;/p&gt;
-&lt;div class=&#34;highlight&#34;&gt;&lt;div style=&#34;background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2&#34;&gt;
-&lt;table style=&#34;border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;&#34;&gt;&lt;tr&gt;&lt;td style=&#34;vertical-align:top;padding:0;margin:0;border:0;&#34;&gt;
-&lt;pre style=&#34;background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2&#34;&gt;&lt;code&gt;&lt;span style=&#34;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f&#34; id=&#34;1&#34;&gt;&lt;a style=&#34;outline: none; text-decoration:none; color:inherit&#34; href=&#34;#1&#34;&gt;1&lt;/a&gt;
-&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
-&lt;td style=&#34;vertical-align:top;padding:0;margin:0;border:0;;width:100%&#34;&gt;
-&lt;pre style=&#34;background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2&#34;&gt;&lt;code class=&#34;language-shell&#34; data-lang=&#34;shell&#34;&gt;&lt;span style=&#34;color:#204a87&#34;&gt;echo&lt;/span&gt; &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;secret-4-8805337204530fb2aa05416e64074810ef13a3b790d03e75\nsecret-1-4ca1b67c6f42b2f55f37a114ca1da1659d8fd0c6dc21fb6e\nsecret-2-60537b3ff6a8be9693ad6e1bcaa42cae81e4d4eb5c44ec83&amp;#34;&lt;/span&gt; &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt; ssss-combine -t &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;3&lt;/span&gt; -q
-&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
-&lt;/div&gt;
-&lt;/div&gt;&lt;h3 id=&#34;automate-secret-split-with-shellscript&#34;&gt;Automate secret split with shell script&lt;/h3&gt;
-&lt;p&gt;Simple bash script to split secret into shares and encode them as QR coded PNG images.&lt;/p&gt;
-&lt;div class=&#34;highlight&#34;&gt;&lt;div style=&#34;background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2&#34;&gt;
-&lt;table style=&#34;border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;&#34;&gt;&lt;tr&gt;&lt;td style=&#34;vertical-align:top;padding:0;margin:0;border:0;&#34;&gt;
-&lt;pre style=&#34;background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2&#34;&gt;&lt;code&gt;&lt;span style=&#34;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f&#34; id=&#34;1&#34;&gt;&lt;a style=&#34;outline: none; text-decoration:none; color:inherit&#34; href=&#34;#1&#34;&gt;1&lt;/a&gt;
-&lt;/span&gt;&lt;span style=&#34;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f&#34; id=&#34;2&#34;&gt;&lt;a style=&#34;outline: none; text-decoration:none; color:inherit&#34; href=&#34;#2&#34;&gt;2&lt;/a&gt;
-&lt;/span&gt;&lt;span style=&#34;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f&#34; id=&#34;3&#34;&gt;&lt;a style=&#34;outline: none; text-decoration:none; color:inherit&#34; href=&#34;#3&#34;&gt;3&lt;/a&gt;
-&lt;/span&gt;&lt;span style=&#34;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f&#34; id=&#34;4&#34;&gt;&lt;a style=&#34;outline: none; text-decoration:none; color:inherit&#34; href=&#34;#4&#34;&gt;4&lt;/a&gt;
-&lt;/span&gt;&lt;span style=&#34;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f&#34; id=&#34;5&#34;&gt;&lt;a style=&#34;outline: none; text-decoration:none; color:inherit&#34; href=&#34;#5&#34;&gt;5&lt;/a&gt;
-&lt;/span&gt;&lt;span style=&#34;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f&#34; id=&#34;6&#34;&gt;&lt;a style=&#34;outline: none; text-decoration:none; color:inherit&#34; href=&#34;#6&#34;&gt;6&lt;/a&gt;
-&lt;/span&gt;&lt;span style=&#34;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f&#34; id=&#34;7&#34;&gt;&lt;a style=&#34;outline: none; text-decoration:none; color:inherit&#34; href=&#34;#7&#34;&gt;7&lt;/a&gt;
-&lt;/span&gt;&lt;span style=&#34;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f&#34; id=&#34;8&#34;&gt;&lt;a style=&#34;outline: none; text-decoration:none; color:inherit&#34; href=&#34;#8&#34;&gt;8&lt;/a&gt;
-&lt;/span&gt;&lt;span style=&#34;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f&#34; id=&#34;9&#34;&gt;&lt;a style=&#34;outline: none; text-decoration:none; color:inherit&#34; href=&#34;#9&#34;&gt;9&lt;/a&gt;
-&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
-&lt;td style=&#34;vertical-align:top;padding:0;margin:0;border:0;;width:100%&#34;&gt;
-&lt;pre style=&#34;background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2&#34;&gt;&lt;code class=&#34;language-shell&#34; data-lang=&#34;shell&#34;&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;#!/usr/bin/env bash
-&lt;/span&gt;&lt;span style=&#34;color:#8f5902;font-style:italic&#34;&gt;&lt;/span&gt;
-&lt;span style=&#34;color:#000&#34;&gt;PASSWORD&lt;/span&gt;&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;=&lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;$(&lt;/span&gt;gpg --armor --gen-random &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;2&lt;/span&gt; 18&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;)&lt;/span&gt;
-&lt;span style=&#34;color:#000&#34;&gt;SHARES&lt;/span&gt;&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;=(&lt;/span&gt;&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;$(&lt;/span&gt;&lt;span style=&#34;color:#204a87&#34;&gt;echo&lt;/span&gt; &lt;span style=&#34;color:#4e9a06&#34;&gt;${&lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;PASSWORD&lt;/span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;}&lt;/span&gt; &lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;|&lt;/span&gt; ssss-split -q -n &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;4&lt;/span&gt; -t &lt;span style=&#34;color:#0000cf;font-weight:bold&#34;&gt;3&lt;/span&gt; -w secret&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;)&lt;/span&gt;&lt;span style=&#34;color:#ce5c00;font-weight:bold&#34;&gt;)&lt;/span&gt;
-
-&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;for&lt;/span&gt; share in &lt;span style=&#34;color:#4e9a06&#34;&gt;${&lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;SHARES&lt;/span&gt;&lt;span style=&#34;color:#000;font-weight:bold&#34;&gt;[@]&lt;/span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;}&lt;/span&gt;
-&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;do&lt;/span&gt;
-    qrencode -t PNG &lt;span style=&#34;color:#000&#34;&gt;$share&lt;/span&gt; -o &lt;span style=&#34;color:#4e9a06&#34;&gt;&amp;#34;&lt;/span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;${&lt;/span&gt;&lt;span style=&#34;color:#000&#34;&gt;share&lt;/span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;}&lt;/span&gt;&lt;span style=&#34;color:#4e9a06&#34;&gt;.png&amp;#34;&lt;/span&gt;
-&lt;span style=&#34;color:#204a87;font-weight:bold&#34;&gt;done&lt;/span&gt;
-&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
-&lt;/div&gt;
-&lt;/div&gt;&lt;p&gt;Print these QR codes on paper and store them in different places.&lt;/p&gt;
-&lt;h2 id=&#34;wrap-up&#34;&gt;Wrap up&lt;/h2&gt;
-&lt;p&gt;In this article, we generated password with &lt;strong&gt;GnuPG&lt;/strong&gt; and used Shamir&amp;rsquo;s Secret Sharing cryptographic algorithm to split secret into several shares, addition, shares were rendered as QR codes for printing them and storing offline.&lt;/p&gt;
-</description>
     </item>
     
   </channel>
