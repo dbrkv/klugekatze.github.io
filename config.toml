@@ -29,7 +29,7 @@ name = "Dmitry"
 [params]
 subtitle = "Notes"
 customCSS = [
-    "css/kustomization.css"
+    # "css/kustomization.css"
   ]
 # style = "auto"
 readMore = true
