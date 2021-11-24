@@ -7,6 +7,8 @@ tags:
     - kubernetes
 ---
 
+![Certified Kubernetes Application Developer](/assets/passing-ckad-exam-in-2021)
+
 Yesterday I took Certified Kubernetes Application Developer (CKAD) exam. Probably, passing the exam in 2021 is not more different than in any other year I guess.
 
 You have to be skilled in kubectl, and holy VIM. I'm practising with k8s daily, but had a very small experience hacking with kubectl imperative commands, editing YAML in Vi editor. Overall exam experience is remembered me CounterStrike gaming experience: strict timings, muscle memory on tips of you fingers to execute actions automatically. Just like on Dust make headshot of an enemy from AWP in jump between the gate leaves. Your skills in kubectl, hacking yaml's terminal with vim, ability to scan Kubernetes documentation blazing fast and precise are a huge portion of success.
