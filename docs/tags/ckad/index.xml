@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>ckad on Sunthera</title><link>https://sunthera.github.io/tags/ckad/</link><description>Sunthera (ckad)</description><generator>Hugo -- gohugo.io</generator><language>en-us</language><lastBuildDate>Wed, 24 Nov 2021 00:00:00 +0000</lastBuildDate><atom:link href="https://sunthera.github.io/tags/ckad/index.xml" rel="self" type="application/rss+xml"/><item><title>Passing CKAD exam in 2021</title><link>https://sunthera.github.io/posts/passing-ckad-exam-in-2021/</link><pubDate>Wed, 24 Nov 2021 00:00:00 +0000</pubDate><guid>https://sunthera.github.io/posts/passing-ckad-exam-in-2021/</guid><description>&lt;p>&lt;img src="https://sunthera.github.io/assets/passing-ckad-exam-in-2021-banner.png" alt="Certified Kubernetes Application Developer">&lt;/p>
+&lt;p>Yesterday I took Certified Kubernetes Application Developer (CKAD) exam. Passing the exam in 2021 is not more different than in any other year I guess.&lt;/p>
+&lt;p>The exam is not difficult, especially if you have practical experience with Kubernetes. In this post, I share what and how I did.&lt;/p>
+&lt;h2 id="reduce-your-weak-points">Reduce your weak points&lt;/h2>
+&lt;p>If you don&amp;rsquo;t know how to run a container as a user or mount secret as a volume, others - learn and practice.&lt;/p>
+&lt;p>You may not use, and, perhaps, never use, this in practice, but you have to know it, as its basics. With a 100% guarantee, such questions will be on your task list. Learn how to implement deployment patterns using kubernetes primitives: using sidecars, route traffic to pods.&lt;/p>
+&lt;h2 id="recommended-resources">Recommended resources&lt;/h2>
+&lt;ul>
+&lt;li>&lt;a href="https://github.com/cncf/curriculum">Open Source Curriculum for CNCF Certification Courses&lt;/a>&lt;/li>
+&lt;li>&lt;a href="https://kubernetes.io/">Kubernetes documentation&lt;/a> - obviously contains absolutely everything you need to prepare for the exam&lt;/li>
+&lt;li>&lt;a href="https://training.linuxfoundation.org/training/introduction-to-kubernetes/">Introduction to Kubernetes (LFS158x)&lt;/a> - base course on edx&lt;/li>
+&lt;li>&lt;a href="https://www.udemy.com/course/learn-devops-the-complete-kubernetes-course/">Learn DevOps: The Complete Kubernetes Course&lt;/a> - good live terminal demos&lt;/li>
+&lt;li>&lt;a href="https://www.udemy.com/course/certified-kubernetes-application-developer/">Kubernetes Certified Application Developer (CKAD) with Tests&lt;/a> - subject explained with slides, practical labs&lt;/li>
+&lt;li>&lt;a href="https://github.com/ahmetb/kubernetes-network-policy-recipes">NetworkPolicy recipes&lt;/a> - recipes with visual explainations&lt;/li>
+&lt;li>&lt;a href="https://github.com/dgkanatsios/CKAD-exercises">CKAD Exercises&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h2 id="practice-with-killersh">Practice with killer.sh&lt;/h2>
+&lt;p>After the purchase of the exam, you have 2 sessions on killer.sh. Use your first session after you think you are ready for an exam. Activate the session in the early morning as the session is valid for 36 hours so you can run 2-3 times this day and 1-2 the next day. I recommend activating the second session after you improve your skills after the first attempt and 2-3 days before the scheduled exam. If you&amp;rsquo;ve done a good job on the mistakes, you&amp;rsquo;ll see a big difference.&lt;/p>
+&lt;h2 id="learn-that-vim-finally">Learn that VIM finally&lt;/h2>
+&lt;p>I always used nano instead of Vim for in terminal shell work. It&amp;rsquo;s always been a panic mode &amp;ldquo;How to exit from this editor?&amp;rdquo;. However, I should admit, it&amp;rsquo;s more convenient with its key shortcuts and modes than nano. Now I&amp;rsquo;m started to use Vim. Watch &lt;a href="https://youtu.be/knyJt8d6C_8">Vim Crash Course video&lt;/a> and bookmark &lt;a href="https://devhints.io/vim">Vim cheatsheet&lt;/a>&lt;/p>
+&lt;p>For editing YAML, memorize vim config keys and put them into &lt;code>~/.vimrc&lt;/code>:&lt;/p>
+&lt;div class="highlight">&lt;div style="background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2">
+&lt;table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;">&lt;tr>&lt;td style="vertical-align:top;padding:0;margin:0;border:0;">
+&lt;pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2">&lt;code>&lt;span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="1">&lt;a style="outline: none; text-decoration:none; color:inherit" href="#1">1&lt;/a>
+&lt;/span>&lt;span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="2">&lt;a style="outline: none; text-decoration:none; color:inherit" href="#2">2&lt;/a>
+&lt;/span>&lt;span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="3">&lt;a style="outline: none; text-decoration:none; color:inherit" href="#3">3&lt;/a>
+&lt;/span>&lt;span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="4">&lt;a style="outline: none; text-decoration:none; color:inherit" href="#4">4&lt;/a>
+&lt;/span>&lt;span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="5">&lt;a style="outline: none; text-decoration:none; color:inherit" href="#5">5&lt;/a>
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+&lt;pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2">&lt;code class="language-shell" data-lang="shell">&lt;span style="color:#8f5902;font-style:italic"># ~/.vimrc&lt;/span>
+&lt;span style="color:#204a87">set&lt;/span> &lt;span style="color:#000">tabstop&lt;/span>&lt;span style="color:#ce5c00;font-weight:bold">=&lt;/span>&lt;span style="color:#0000cf;font-weight:bold">2&lt;/span>
+&lt;span style="color:#204a87">set&lt;/span> expandtab
+&lt;span style="color:#204a87">set&lt;/span> &lt;span style="color:#000">shiftwidth&lt;/span>&lt;span style="color:#ce5c00;font-weight:bold">=&lt;/span>&lt;span style="color:#0000cf;font-weight:bold">2&lt;/span>
+syntax on
+&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h2 id="prepare-bookmarks">Prepare bookmarks&lt;/h2>
+&lt;p>I used 2 sets of bookmarks: my own and from &lt;a href="https://alta3.com/blog/passing-the-ckad">Alta3&lt;/a>(download them at the bottom). I had a set of approximately 20 of my own bookmarks pointing to some specific parts, like: security context, mount all env variables from a secret, mount single env variable from the secret key, etc.&lt;/p>
+&lt;h2 id="scheduling-exam-and-exam-day">Scheduling exam and exam day&lt;/h2>
+&lt;p>&lt;strong>Schedule an exam early morning&lt;/strong>, when your mind is still fresh. Before exam &amp;ldquo;prewarm&amp;rdquo; yourself by executing practising tasks on your local minikube. &amp;ldquo;Prewarm&amp;rdquo; is not important, but it will set you up for a work rhythm for an exam.&lt;/p>
+&lt;p>&lt;strong>For macOS:&lt;/strong> you have to grant permissions from system preferences to record screen for Chrome. Without this, Chrome chrome is not able to share screen &lt;strong>and&lt;/strong> not reporting root cause why.&lt;/p>
+&lt;p>&lt;strong>Solve tasks out of provided order!&lt;/strong> I scrolled all questions first to classify them by difficulty and score, marked all tasks I skipped and started from somewhere in the middle of the list.&lt;/p>
+&lt;p>&lt;strong>Read task descriptions carefully&lt;/strong>, copy-paste all variables, namespace names and sections of YAML you found in the documentation. It&amp;rsquo;s &lt;strong>faster&lt;/strong> and &lt;strong>safer&lt;/strong> to copy-paste, rather than return to correct typo &amp;ldquo;srviceAccountName&amp;rdquo; of &amp;ldquo;serviceAccountName&amp;rdquo;
+You are allowed to open one tab with documentation, I extracted that tab into a new window and put windows one above another with the shift. Make Chrome windows not full-screen by width, a bit narrower, which allows you more quickly navigate between windows using the cursor by clicking the wide area at the right or left. You could also use 2nd monitor.&lt;/p>
+&lt;p>&lt;img src="https://sunthera.github.io/assets/passing-ckad-exam-in-2021-window-layout-terminal.png" alt="Chrome window layouts with documentation and exam window">&lt;/p>
+&lt;p>&lt;img src="https://sunthera.github.io/assets/passing-ckad-exam-in-2021-window-layout-docs.png" alt="Chrome window layouts with documentation and exam window">&lt;/p>
+&lt;h2 id="personal-summary">Personal summary&lt;/h2>
+&lt;p>It&amp;rsquo;s my first certification exam. I purchased it in late 2020 but didn&amp;rsquo;t allocate time during a year to attempt it and postponed it till the latest days before expiration.&lt;/p>
+&lt;p>You have to be skilled in kubectl, and holy VIM. I&amp;rsquo;m practising with k8s daily, but had a very small experience hacking with kubectl imperative commands, editing YAML in Vi editor. Exam experience is reminded me Counter-Strike gaming experience: strict timings, muscle memory on tips of your fingers to execute actions automatically. Just like on Dust 2 make a headshot of an enemy from AWP in a jump between the gate leaves. Your skills in kubectl, hacking yaml&amp;rsquo;s terminal with vim, ability to scan Kubernetes documentation blazing fast and precise are a huge portion of success, but knowledge is the primary key to passing en exam.&lt;/p>
+&lt;p>Overall, The exam is a good way to learn topics deeper and arrange knowledge.&lt;/p></description></item></channel></rss>
