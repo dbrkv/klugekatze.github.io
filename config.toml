@@ -3,7 +3,7 @@ languageCode = "en-us"
 title = "Sunthera"
 theme = "anubis"
 disqusShortname = "suntera-website"
-enableRobotsTXT =  true
+enableRobotsTXT = true
 googleAnalytics = "G-TGZCY92STK"
 
 [taxonomies]
@@ -30,7 +30,7 @@ name = "Dmitry"
 subtitle = "Notes"
 customCSS = [
     "css/kustomization.css"
-    ]
+  ]
 # style = "auto"
 readMore = true
 
