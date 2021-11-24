@@ -9,7 +9,7 @@ tags:
 
 ![Certified Kubernetes Application Developer](/assets/passing-ckad-exam-in-2021-banner.png)
 
-Yesterday I took Certified Kubernetes Application Developer (CKAD) exam by the Cloud Native Computing Foundation (CNCF). Passing the exam in 2021 is not more different than in any other year I guess.
+Yesterday I passed Certified Kubernetes Application Developer (CKAD) exam by the Cloud Native Computing Foundation (CNCF). Passing the exam in 2021 is not more different than in any other year I guess.
 
 The exam is not difficult, especially if you have practical experience with Kubernetes. In this post, I share what and how I did.
 
