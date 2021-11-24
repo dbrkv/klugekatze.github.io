@@ -26,7 +26,7 @@ You may not use, and, perhaps, never use, this in practice, but you have to know
 * [Introduction to Kubernetes (LFS158x)](https://training.linuxfoundation.org/training/introduction-to-kubernetes/) - base course on edx
 * [Learn DevOps: The Complete Kubernetes Course](https://www.udemy.com/course/learn-devops-the-complete-kubernetes-course/) - good live terminal demos
 * [Kubernetes Certified Application Developer (CKAD) with Tests](https://www.udemy.com/course/certified-kubernetes-application-developer/) - subject explained with slides, practical labs
-* [NetworkPolicy recipes](https://github.com/ahmetb/kubernetes-network-policy-recipes) - recipes with visual explainations
+* [NetworkPolicy recipes](https://github.com/ahmetb/kubernetes-network-policy-recipes) - recipes with visual explanations
 * [CKAD Exercises](https://github.com/dgkanatsios/CKAD-exercises)
 
 ## Practice with killer.sh
@@ -55,7 +55,7 @@ I used 2 sets of bookmarks: my own and from [Alta3](https://alta3.com/blog/passi
 
 **Schedule an exam early morning**, when your mind is still fresh. Before exam "prewarm" yourself by executing practising tasks on your local minikube. "Prewarm" is not important, but it will set you up for a work rhythm for an exam.
 
-**For macOS:** you have to grant permissions from system preferences to record screen for Chrome. Without this, Chrome chrome is not able to share screen **and** not reporting root cause why.
+**For macOS:** you have to grant permissions from system preferences to record screen for Chrome. Without this, Chrome chrome is not able to share a screen **and** do not report the root cause.
 
 **Solve tasks out of provided order!** I scrolled all questions first to classify them by difficulty and score, marked all tasks I skipped and started from somewhere in the middle of the list.
 
@@ -66,10 +66,10 @@ You are allowed to open one tab with documentation, I extracted that tab into a 
 
 ![Chrome window layouts with documentation and exam window](/assets/passing-ckad-exam-in-2021-window-layout-docs.png)
 
-## Personal summary
+## Personal conclusion
 
 It's my first certification exam. I purchased it in late 2020 but didn't allocate time during a year to attempt it and postponed it till the latest days before expiration.
 
-You have to be skilled in kubectl, and holy VIM. I'm practising with k8s daily, but had a very small experience hacking with kubectl imperative commands, editing YAML in Vi editor. Exam experience is reminded me Counter-Strike gaming experience: strict timings, muscle memory on tips of your fingers to execute actions automatically. Just like on Dust 2 make a headshot of an enemy from AWP in a jump between the gate leaves. Your skills in kubectl, hacking yaml's terminal with vim, ability to scan Kubernetes documentation blazing fast and precise are a huge portion of success, but knowledge is the primary key to passing en exam.
+You have to be skilled in kubectl, and holy VIM. I'm practising with k8s daily, but had a very small experience hacking with kubectl imperative commands, editing YAML in Vi editor. Exam experience is reminded me Counter-Strike gaming experience: strict timings, muscle memory on tips of your fingers to execute actions automatically. Just like on Dust 2 make a headshot of an enemy from AWP in a jump between the gate leaves. Your skills in kubectl, hacking yaml's terminal with vim, ability to scan Kubernetes documentation blazing fast and precise are a huge portion of success, but knowledge is the primary key to passing an exam.
 
 Overall, The exam is a good way to learn topics deeper and arrange knowledge.
