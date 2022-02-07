@@ -1,6 +1,6 @@
-baseURL = "https://sunthera.github.io/"
+baseURL = "https://klugekatze.github.io/"
 languageCode = "en-us"
-title = "Sunthera"
+title = "KlugeKatze"
 theme = "anubis"
 disqusShortname = "suntera-website"
 enableRobotsTXT = true
