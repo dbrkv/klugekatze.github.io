@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+
+
+<html lang="en-us" data-theme="">
+<head>
+    
+        
+<meta charset="utf-8">
+<meta name="HandheldFriendly" content="True">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="no-referrer-when-downgrade">
+
+<title>Symfony routing from yaml to attributes - KlugeKatze</title>
+<meta name="description" content="">
+
+<link rel="icon" type="image/x-icon" href="https://klugekatze.github.io/favicon.ico">
+<link rel="apple-touch-icon-precomposed" href="https://klugekatze.github.io/favicon.png">
+
+
+
+    
+
+
+
+
+
+    
+    
+    
+
+    
+        <link rel="stylesheet" href="https://klugekatze.github.io/css/style.4622e864a3694db065c6fdee8f297dc58db0efa3a22c934e5b0863569db3def4.css" integrity="sha256-RiLoZKNpTbBlxv3ujyl9xY2w76OiLJNOWwhjVp2z3vQ=">
+    
+
+
+
+
+
+<meta property="og:title" content="Symfony routing from yaml to attributes" />
+<meta property="og:description" content="It&rsquo;s Over 9000!
+ Given: Symfony application with 99 controllers and 457 unique route definitions in YAML. PhpStorm Symfony plugin helps a lot with navigation but still have limited refactoring capabilities. When all definitions are in one place it&rsquo;s simply better. With new PHP Attributes syntax, decided to refactor YAML routing to attributes for easier maintenance.
+Each route definition have minimum 2 config parameters: path and name. Many routes have methods, _defaults and requirements defined, some contain options parameter." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://klugekatze.github.io/posts/symfony-routing-from-yaml-to-attributes/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2022-02-08T00:00:00+00:00" />
+<meta property="article:modified_time" content="2022-02-08T00:00:00+00:00" />
+
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Symfony routing from yaml to attributes"/>
+<meta name="twitter:description" content="It&rsquo;s Over 9000!
+ Given: Symfony application with 99 controllers and 457 unique route definitions in YAML. PhpStorm Symfony plugin helps a lot with navigation but still have limited refactoring capabilities. When all definitions are in one place it&rsquo;s simply better. With new PHP Attributes syntax, decided to refactor YAML routing to attributes for easier maintenance.
+Each route definition have minimum 2 config parameters: path and name. Many routes have methods, _defaults and requirements defined, some contain options parameter."/>
+
+
+
+
+
+
+
+
+
+
+
+    
+</head>
+<body>
+    <a class="skip-main" href="#main">Skip to main content</a>
+    <div class="container">
+        <header class="common-header"> 
+            
+                <div class="header-top">
+    <h1 class="site-title">
+        <a href="/">KlugeKatze</a>
+    </h1>
+    <ul class="social-icons">
+
+
+</ul>
+
+</div>
+
+    <nav>
+        
+        
+        <a class="" href="https://klugekatze.github.io/" title="">Home</a>
+        
+    </nav>
+
+
+
+
+            
+        </header>
+        <main id="main" tabindex="-1"> 
+            
+    
+    
+    <article class="post h-entry">
+        <header class="post-header">
+            <h1 class="p-name post-title">Symfony routing from yaml to attributes</h1>
+
+            
+        </header>
+        <div class="content e-content">
+            <blockquote>
+<p>It&rsquo;s Over 9000!</p>
+</blockquote>
+<p>Given: Symfony application with 99 controllers and 457 unique route definitions in YAML.
+PhpStorm Symfony plugin helps a lot with navigation but still have limited refactoring capabilities. When all definitions are in one place it&rsquo;s simply better.
+With new PHP Attributes syntax, decided to refactor YAML routing to attributes for easier maintenance.</p>
+<p>Each route definition have minimum 2 config parameters: <code>path</code> and <code>name</code>. Many routes have <code>methods</code>,  <code>_defaults</code> and <code>requirements</code> defined, some contain <code>options</code> parameter. It seems quite some copy paste per route work.</p>
+<p>Manual migration of one controller with 50 actions didn&rsquo;t go well: I had to restart it a few times due to human errors: forgot to copy/paste or paste into the wrong place. Wrong, computers should do all hard work: <a href="https://github.com/rectorphp/rector">Rector</a> with custom rule to the rescue.</p>
+<p>Refactoring consists of 3 steps:</p>
+<ul>
+<li>extract routes</li>
+<li>deduplicate and group them by a controller action (i18n)</li>
+<li>run rector to add <code>#[Route]</code> attributes.</li>
+</ul>
+<p>As this one-off task, I did not spend too much time making migration scripts and rector rule beautiful.</p>
+<p>Luckily, routes can be printed in machine-readable format with option <code>--format json</code>.</p>
+<div class="highlight"><div style="background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="1"><a style="outline: none; text-decoration:none; color:inherit" href="#1">1</a>
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="language-shell" data-lang="shell">php bin/console debug:router --format json
+</code></pre></td></tr></table>
+</div>
+</div><p>It&rsquo;s big Symfony application with <a href="https://github.com/schmittjoh/JMSI18nRoutingBundle">JMSI18nRoutingBundle</a>, <code>debug:router</code> prints routes in all locales, need to get routes only from default locale and group them by a controller action:</p>
+<div class="highlight"><div style="background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="1"><a style="outline: none; text-decoration:none; color:inherit" href="#1"> 1</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="2"><a style="outline: none; text-decoration:none; color:inherit" href="#2"> 2</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="3"><a style="outline: none; text-decoration:none; color:inherit" href="#3"> 3</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="4"><a style="outline: none; text-decoration:none; color:inherit" href="#4"> 4</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="5"><a style="outline: none; text-decoration:none; color:inherit" href="#5"> 5</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="6"><a style="outline: none; text-decoration:none; color:inherit" href="#6"> 6</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="7"><a style="outline: none; text-decoration:none; color:inherit" href="#7"> 7</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="8"><a style="outline: none; text-decoration:none; color:inherit" href="#8"> 8</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="9"><a style="outline: none; text-decoration:none; color:inherit" href="#9"> 9</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="10"><a style="outline: none; text-decoration:none; color:inherit" href="#10">10</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="11"><a style="outline: none; text-decoration:none; color:inherit" href="#11">11</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="12"><a style="outline: none; text-decoration:none; color:inherit" href="#12">12</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="13"><a style="outline: none; text-decoration:none; color:inherit" href="#13">13</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="14"><a style="outline: none; text-decoration:none; color:inherit" href="#14">14</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="15"><a style="outline: none; text-decoration:none; color:inherit" href="#15">15</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="16"><a style="outline: none; text-decoration:none; color:inherit" href="#16">16</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="17"><a style="outline: none; text-decoration:none; color:inherit" href="#17">17</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="18"><a style="outline: none; text-decoration:none; color:inherit" href="#18">18</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="19"><a style="outline: none; text-decoration:none; color:inherit" href="#19">19</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="20"><a style="outline: none; text-decoration:none; color:inherit" href="#20">20</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="21"><a style="outline: none; text-decoration:none; color:inherit" href="#21">21</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="22"><a style="outline: none; text-decoration:none; color:inherit" href="#22">22</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="23"><a style="outline: none; text-decoration:none; color:inherit" href="#23">23</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="24"><a style="outline: none; text-decoration:none; color:inherit" href="#24">24</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="25"><a style="outline: none; text-decoration:none; color:inherit" href="#25">25</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="26"><a style="outline: none; text-decoration:none; color:inherit" href="#26">26</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="27"><a style="outline: none; text-decoration:none; color:inherit" href="#27">27</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="28"><a style="outline: none; text-decoration:none; color:inherit" href="#28">28</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="29"><a style="outline: none; text-decoration:none; color:inherit" href="#29">29</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="30"><a style="outline: none; text-decoration:none; color:inherit" href="#30">30</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="31"><a style="outline: none; text-decoration:none; color:inherit" href="#31">31</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="32"><a style="outline: none; text-decoration:none; color:inherit" href="#32">32</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="33"><a style="outline: none; text-decoration:none; color:inherit" href="#33">33</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="34"><a style="outline: none; text-decoration:none; color:inherit" href="#34">34</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="35"><a style="outline: none; text-decoration:none; color:inherit" href="#35">35</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="36"><a style="outline: none; text-decoration:none; color:inherit" href="#36">36</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="37"><a style="outline: none; text-decoration:none; color:inherit" href="#37">37</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="38"><a style="outline: none; text-decoration:none; color:inherit" href="#38">38</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="39"><a style="outline: none; text-decoration:none; color:inherit" href="#39">39</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="40"><a style="outline: none; text-decoration:none; color:inherit" href="#40">40</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="41"><a style="outline: none; text-decoration:none; color:inherit" href="#41">41</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="42"><a style="outline: none; text-decoration:none; color:inherit" href="#42">42</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="43"><a style="outline: none; text-decoration:none; color:inherit" href="#43">43</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="44"><a style="outline: none; text-decoration:none; color:inherit" href="#44">44</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="45"><a style="outline: none; text-decoration:none; color:inherit" href="#45">45</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="46"><a style="outline: none; text-decoration:none; color:inherit" href="#46">46</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="47"><a style="outline: none; text-decoration:none; color:inherit" href="#47">47</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="48"><a style="outline: none; text-decoration:none; color:inherit" href="#48">48</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="49"><a style="outline: none; text-decoration:none; color:inherit" href="#49">49</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="50"><a style="outline: none; text-decoration:none; color:inherit" href="#50">50</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="51"><a style="outline: none; text-decoration:none; color:inherit" href="#51">51</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="52"><a style="outline: none; text-decoration:none; color:inherit" href="#52">52</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="53"><a style="outline: none; text-decoration:none; color:inherit" href="#53">53</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="54"><a style="outline: none; text-decoration:none; color:inherit" href="#54">54</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="55"><a style="outline: none; text-decoration:none; color:inherit" href="#55">55</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="56"><a style="outline: none; text-decoration:none; color:inherit" href="#56">56</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="57"><a style="outline: none; text-decoration:none; color:inherit" href="#57">57</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="58"><a style="outline: none; text-decoration:none; color:inherit" href="#58">58</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="59"><a style="outline: none; text-decoration:none; color:inherit" href="#59">59</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="60"><a style="outline: none; text-decoration:none; color:inherit" href="#60">60</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="61"><a style="outline: none; text-decoration:none; color:inherit" href="#61">61</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="62"><a style="outline: none; text-decoration:none; color:inherit" href="#62">62</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="63"><a style="outline: none; text-decoration:none; color:inherit" href="#63">63</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="64"><a style="outline: none; text-decoration:none; color:inherit" href="#64">64</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="65"><a style="outline: none; text-decoration:none; color:inherit" href="#65">65</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="66"><a style="outline: none; text-decoration:none; color:inherit" href="#66">66</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="67"><a style="outline: none; text-decoration:none; color:inherit" href="#67">67</a>
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="language-php" data-lang="php"><span style="color:#ce5c00;font-weight:bold">&lt;?</span><span style="color:#000">php</span>
+
+<span style="color:#000">$json</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#000">json_decode</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">file_get_contents</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#39;php://stdin&#39;</span><span style="color:#000;font-weight:bold">),</span> <span style="color:#204a87;font-weight:bold">true</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#0000cf;font-weight:bold">50</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">JSON_THROW_ON_ERROR</span><span style="color:#000;font-weight:bold">);</span>
+
+<span style="color:#000">$routes</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">[];</span>
+
+<span style="color:#204a87;font-weight:bold">function</span> <span style="color:#000">cleanupRouteDefinition</span><span style="color:#000;font-weight:bold">(</span><span style="color:#ce5c00;font-weight:bold">&amp;</span><span style="color:#000">$def</span><span style="color:#000;font-weight:bold">)</span><span style="color:#ce5c00;font-weight:bold">:</span> <span style="color:#000">void</span> <span style="color:#000;font-weight:bold">{</span>
+    <span style="color:#000">unset</span><span style="color:#000;font-weight:bold">(</span>
+        <span style="color:#000">$def</span><span style="color:#000;font-weight:bold">[</span><span style="color:#4e9a06">&#39;defaults&#39;</span><span style="color:#000;font-weight:bold">][</span><span style="color:#4e9a06">&#39;_locale&#39;</span><span style="color:#000;font-weight:bold">],</span>
+        <span style="color:#000">$def</span><span style="color:#000;font-weight:bold">[</span><span style="color:#4e9a06">&#39;defaults&#39;</span><span style="color:#000;font-weight:bold">][</span><span style="color:#4e9a06">&#39;version&#39;</span><span style="color:#000;font-weight:bold">],</span>
+        <span style="color:#000">$def</span><span style="color:#000;font-weight:bold">[</span><span style="color:#4e9a06">&#39;defaults&#39;</span><span style="color:#000;font-weight:bold">][</span><span style="color:#4e9a06">&#39;_app&#39;</span><span style="color:#000;font-weight:bold">],</span>
+        <span style="color:#000">$def</span><span style="color:#000;font-weight:bold">[</span><span style="color:#4e9a06">&#39;options&#39;</span><span style="color:#000;font-weight:bold">][</span><span style="color:#4e9a06">&#39;compiler_class&#39;</span><span style="color:#000;font-weight:bold">],</span>
+        <span style="color:#000">$def</span><span style="color:#000;font-weight:bold">[</span><span style="color:#4e9a06">&#39;options&#39;</span><span style="color:#000;font-weight:bold">][</span><span style="color:#4e9a06">&#39;utf8&#39;</span><span style="color:#000;font-weight:bold">],</span>
+        <span style="color:#000">$def</span><span style="color:#000;font-weight:bold">[</span><span style="color:#4e9a06">&#39;options&#39;</span><span style="color:#000;font-weight:bold">][</span><span style="color:#4e9a06">&#39;i18n&#39;</span><span style="color:#000;font-weight:bold">],</span>
+        <span style="color:#000">$def</span><span style="color:#000;font-weight:bold">[</span><span style="color:#4e9a06">&#39;options&#39;</span><span style="color:#000;font-weight:bold">][</span><span style="color:#4e9a06">&#39;version&#39;</span><span style="color:#000;font-weight:bold">],</span>
+    <span style="color:#000;font-weight:bold">);</span>
+<span style="color:#000;font-weight:bold">}</span>
+
+<span style="color:#204a87;font-weight:bold">foreach</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">$json</span> <span style="color:#204a87;font-weight:bold">as</span> <span style="color:#000">$k</span> <span style="color:#ce5c00;font-weight:bold">=&gt;</span> <span style="color:#000">$v</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+    <span style="color:#000">$parts</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#000">explode</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#39;__RG__&#39;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">$k</span><span style="color:#000;font-weight:bold">);</span>
+
+    <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">count</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">$parts</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#ce5c00;font-weight:bold">===</span> <span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+        <span style="color:#000">cleanupRouteDefinition</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">$v</span><span style="color:#000;font-weight:bold">);</span>
+        <span style="color:#000">$routes</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">$k</span><span style="color:#000;font-weight:bold">]</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#000">$v</span><span style="color:#000;font-weight:bold">;</span>
+
+        <span style="color:#204a87;font-weight:bold">continue</span><span style="color:#000;font-weight:bold">;</span>
+    <span style="color:#000;font-weight:bold">}</span>
+
+    <span style="color:#8f5902;font-style:italic">// Use only default locale
+</span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">count</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">$parts</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#ce5c00;font-weight:bold">===</span> <span style="color:#0000cf;font-weight:bold">2</span> <span style="color:#ce5c00;font-weight:bold">&amp;&amp;</span> <span style="color:#000">$parts</span><span style="color:#000;font-weight:bold">[</span><span style="color:#0000cf;font-weight:bold">0</span><span style="color:#000;font-weight:bold">]</span> <span style="color:#ce5c00;font-weight:bold">===</span> <span style="color:#4e9a06">&#39;en_US&#39;</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+        <span style="color:#000">cleanupRouteDefinition</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">$v</span><span style="color:#000;font-weight:bold">);</span>
+        <span style="color:#000">$routes</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">$parts</span><span style="color:#000;font-weight:bold">[</span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">]]</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#000">$v</span><span style="color:#000;font-weight:bold">;</span>
+    <span style="color:#000;font-weight:bold">}</span>
+<span style="color:#000;font-weight:bold">}</span>
+
+<span style="color:#000">$groups</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">[];</span>
+
+<span style="color:#204a87;font-weight:bold">foreach</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">$routes</span> <span style="color:#204a87;font-weight:bold">as</span> <span style="color:#000">$k</span> <span style="color:#ce5c00;font-weight:bold">=&gt;</span> <span style="color:#000">$v</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+
+
+    <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#ce5c00;font-weight:bold">!</span><span style="color:#000">isset</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">$v</span><span style="color:#000;font-weight:bold">[</span><span style="color:#4e9a06">&#39;defaults&#39;</span><span style="color:#000;font-weight:bold">][</span><span style="color:#4e9a06">&#39;_controller&#39;</span><span style="color:#000;font-weight:bold">]))</span> <span style="color:#000;font-weight:bold">{</span>
+        <span style="color:#204a87;font-weight:bold">continue</span><span style="color:#000;font-weight:bold">;</span>
+    <span style="color:#000;font-weight:bold">}</span>
+
+    <span style="color:#000">$controller</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#000">$v</span><span style="color:#000;font-weight:bold">[</span><span style="color:#4e9a06">&#39;defaults&#39;</span><span style="color:#000;font-weight:bold">][</span><span style="color:#4e9a06">&#39;_controller&#39;</span><span style="color:#000;font-weight:bold">];</span>
+
+    <span style="color:#8f5902;font-style:italic">/*
+</span><span style="color:#8f5902;font-style:italic">     * controllers starting from &#34;\&#34;
+</span><span style="color:#8f5902;font-style:italic">     * Correct this:
+</span><span style="color:#8f5902;font-style:italic">     * \App\Controller\Work\BillingController::checkoutSubscription
+</span><span style="color:#8f5902;font-style:italic">     * Into This:
+</span><span style="color:#8f5902;font-style:italic">     * App\Controller\Work\BillingController::checkoutSubscription
+</span><span style="color:#8f5902;font-style:italic">     */</span>
+
+    <span style="color:#000">$controller</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#000">preg_replace</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;#^</span><span style="color:#4e9a06">\\\\</span><span style="color:#4e9a06">#&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#4e9a06">&#39;&#39;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">$controller</span><span style="color:#000;font-weight:bold">);</span>
+
+    <span style="color:#8f5902;font-style:italic">/*
+</span><span style="color:#8f5902;font-style:italic">     * Remove path prefixes for api: /v1.4/auth/ =&gt; /auth/
+</span><span style="color:#8f5902;font-style:italic">     */</span>
+    <span style="color:#000">$v</span><span style="color:#000;font-weight:bold">[</span><span style="color:#4e9a06">&#39;path&#39;</span><span style="color:#000;font-weight:bold">]</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#000">preg_replace</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#34;#^/v1.4#&#34;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#4e9a06">&#39;&#39;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">$v</span><span style="color:#000;font-weight:bold">[</span><span style="color:#4e9a06">&#39;path&#39;</span><span style="color:#000;font-weight:bold">]);</span>
+
+    <span style="color:#000">$v</span><span style="color:#000;font-weight:bold">[</span><span style="color:#4e9a06">&#39;____name&#39;</span><span style="color:#000;font-weight:bold">]</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#000">$k</span><span style="color:#000;font-weight:bold">;</span>
+    <span style="color:#000">unset</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">$v</span><span style="color:#000;font-weight:bold">[</span><span style="color:#4e9a06">&#39;defaults&#39;</span><span style="color:#000;font-weight:bold">][</span><span style="color:#4e9a06">&#39;_controller&#39;</span><span style="color:#000;font-weight:bold">]);</span>
+    <span style="color:#000">$groups</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">$controller</span><span style="color:#000;font-weight:bold">][]</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#000">$v</span><span style="color:#000;font-weight:bold">;</span>
+<span style="color:#000;font-weight:bold">}</span>
+
+<span style="color:#000">file_put_contents</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#39;./routing-groups.json&#39;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">json_encode</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">$groups</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">JSON_THROW_ON_ERROR</span><span style="color:#000;font-weight:bold">));</span>
+</code></pre></td></tr></table>
+</div>
+</div><p>Run commands</p>
+<div class="highlight"><div style="background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="1"><a style="outline: none; text-decoration:none; color:inherit" href="#1">1</a>
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="language-shell" data-lang="shell">php bin/console debug:router --format json <span style="color:#000;font-weight:bold">|</span> php removei18nroutes.php -
+</code></pre></td></tr></table>
+</div>
+</div><p>The result of execution is a file <code>routing-groups.json</code> with routes grouped by a controller action. Nice. Now need rector rule to get controller class public methods, try to find action in <code>routing-groups.json</code> and add <code>#[Route]</code> attribute with named arguments.</p>
+<div class="highlight"><div style="background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="1"><a style="outline: none; text-decoration:none; color:inherit" href="#1">  1</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="2"><a style="outline: none; text-decoration:none; color:inherit" href="#2">  2</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="3"><a style="outline: none; text-decoration:none; color:inherit" href="#3">  3</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="4"><a style="outline: none; text-decoration:none; color:inherit" href="#4">  4</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="5"><a style="outline: none; text-decoration:none; color:inherit" href="#5">  5</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="6"><a style="outline: none; text-decoration:none; color:inherit" href="#6">  6</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="7"><a style="outline: none; text-decoration:none; color:inherit" href="#7">  7</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="8"><a style="outline: none; text-decoration:none; color:inherit" href="#8">  8</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="9"><a style="outline: none; text-decoration:none; color:inherit" href="#9">  9</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="10"><a style="outline: none; text-decoration:none; color:inherit" href="#10"> 10</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="11"><a style="outline: none; text-decoration:none; color:inherit" href="#11"> 11</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="12"><a style="outline: none; text-decoration:none; color:inherit" href="#12"> 12</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="13"><a style="outline: none; text-decoration:none; color:inherit" href="#13"> 13</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="14"><a style="outline: none; text-decoration:none; color:inherit" href="#14"> 14</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="15"><a style="outline: none; text-decoration:none; color:inherit" href="#15"> 15</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="16"><a style="outline: none; text-decoration:none; color:inherit" href="#16"> 16</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="17"><a style="outline: none; text-decoration:none; color:inherit" href="#17"> 17</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="18"><a style="outline: none; text-decoration:none; color:inherit" href="#18"> 18</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="19"><a style="outline: none; text-decoration:none; color:inherit" href="#19"> 19</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="20"><a style="outline: none; text-decoration:none; color:inherit" href="#20"> 20</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="21"><a style="outline: none; text-decoration:none; color:inherit" href="#21"> 21</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="22"><a style="outline: none; text-decoration:none; color:inherit" href="#22"> 22</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="23"><a style="outline: none; text-decoration:none; color:inherit" href="#23"> 23</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="24"><a style="outline: none; text-decoration:none; color:inherit" href="#24"> 24</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="25"><a style="outline: none; text-decoration:none; color:inherit" href="#25"> 25</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="26"><a style="outline: none; text-decoration:none; color:inherit" href="#26"> 26</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="27"><a style="outline: none; text-decoration:none; color:inherit" href="#27"> 27</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="28"><a style="outline: none; text-decoration:none; color:inherit" href="#28"> 28</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="29"><a style="outline: none; text-decoration:none; color:inherit" href="#29"> 29</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="30"><a style="outline: none; text-decoration:none; color:inherit" href="#30"> 30</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="31"><a style="outline: none; text-decoration:none; color:inherit" href="#31"> 31</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="32"><a style="outline: none; text-decoration:none; color:inherit" href="#32"> 32</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="33"><a style="outline: none; text-decoration:none; color:inherit" href="#33"> 33</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="34"><a style="outline: none; text-decoration:none; color:inherit" href="#34"> 34</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="35"><a style="outline: none; text-decoration:none; color:inherit" href="#35"> 35</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="36"><a style="outline: none; text-decoration:none; color:inherit" href="#36"> 36</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="37"><a style="outline: none; text-decoration:none; color:inherit" href="#37"> 37</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="38"><a style="outline: none; text-decoration:none; color:inherit" href="#38"> 38</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="39"><a style="outline: none; text-decoration:none; color:inherit" href="#39"> 39</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="40"><a style="outline: none; text-decoration:none; color:inherit" href="#40"> 40</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="41"><a style="outline: none; text-decoration:none; color:inherit" href="#41"> 41</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="42"><a style="outline: none; text-decoration:none; color:inherit" href="#42"> 42</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="43"><a style="outline: none; text-decoration:none; color:inherit" href="#43"> 43</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="44"><a style="outline: none; text-decoration:none; color:inherit" href="#44"> 44</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="45"><a style="outline: none; text-decoration:none; color:inherit" href="#45"> 45</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="46"><a style="outline: none; text-decoration:none; color:inherit" href="#46"> 46</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="47"><a style="outline: none; text-decoration:none; color:inherit" href="#47"> 47</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="48"><a style="outline: none; text-decoration:none; color:inherit" href="#48"> 48</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="49"><a style="outline: none; text-decoration:none; color:inherit" href="#49"> 49</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="50"><a style="outline: none; text-decoration:none; color:inherit" href="#50"> 50</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="51"><a style="outline: none; text-decoration:none; color:inherit" href="#51"> 51</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="52"><a style="outline: none; text-decoration:none; color:inherit" href="#52"> 52</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="53"><a style="outline: none; text-decoration:none; color:inherit" href="#53"> 53</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="54"><a style="outline: none; text-decoration:none; color:inherit" href="#54"> 54</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="55"><a style="outline: none; text-decoration:none; color:inherit" href="#55"> 55</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="56"><a style="outline: none; text-decoration:none; color:inherit" href="#56"> 56</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="57"><a style="outline: none; text-decoration:none; color:inherit" href="#57"> 57</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="58"><a style="outline: none; text-decoration:none; color:inherit" href="#58"> 58</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="59"><a style="outline: none; text-decoration:none; color:inherit" href="#59"> 59</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="60"><a style="outline: none; text-decoration:none; color:inherit" href="#60"> 60</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="61"><a style="outline: none; text-decoration:none; color:inherit" href="#61"> 61</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="62"><a style="outline: none; text-decoration:none; color:inherit" href="#62"> 62</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="63"><a style="outline: none; text-decoration:none; color:inherit" href="#63"> 63</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="64"><a style="outline: none; text-decoration:none; color:inherit" href="#64"> 64</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="65"><a style="outline: none; text-decoration:none; color:inherit" href="#65"> 65</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="66"><a style="outline: none; text-decoration:none; color:inherit" href="#66"> 66</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="67"><a style="outline: none; text-decoration:none; color:inherit" href="#67"> 67</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="68"><a style="outline: none; text-decoration:none; color:inherit" href="#68"> 68</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="69"><a style="outline: none; text-decoration:none; color:inherit" href="#69"> 69</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="70"><a style="outline: none; text-decoration:none; color:inherit" href="#70"> 70</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="71"><a style="outline: none; text-decoration:none; color:inherit" href="#71"> 71</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="72"><a style="outline: none; text-decoration:none; color:inherit" href="#72"> 72</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="73"><a style="outline: none; text-decoration:none; color:inherit" href="#73"> 73</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="74"><a style="outline: none; text-decoration:none; color:inherit" href="#74"> 74</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="75"><a style="outline: none; text-decoration:none; color:inherit" href="#75"> 75</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="76"><a style="outline: none; text-decoration:none; color:inherit" href="#76"> 76</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="77"><a style="outline: none; text-decoration:none; color:inherit" href="#77"> 77</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="78"><a style="outline: none; text-decoration:none; color:inherit" href="#78"> 78</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="79"><a style="outline: none; text-decoration:none; color:inherit" href="#79"> 79</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="80"><a style="outline: none; text-decoration:none; color:inherit" href="#80"> 80</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="81"><a style="outline: none; text-decoration:none; color:inherit" href="#81"> 81</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="82"><a style="outline: none; text-decoration:none; color:inherit" href="#82"> 82</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="83"><a style="outline: none; text-decoration:none; color:inherit" href="#83"> 83</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="84"><a style="outline: none; text-decoration:none; color:inherit" href="#84"> 84</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="85"><a style="outline: none; text-decoration:none; color:inherit" href="#85"> 85</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="86"><a style="outline: none; text-decoration:none; color:inherit" href="#86"> 86</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="87"><a style="outline: none; text-decoration:none; color:inherit" href="#87"> 87</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="88"><a style="outline: none; text-decoration:none; color:inherit" href="#88"> 88</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="89"><a style="outline: none; text-decoration:none; color:inherit" href="#89"> 89</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="90"><a style="outline: none; text-decoration:none; color:inherit" href="#90"> 90</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="91"><a style="outline: none; text-decoration:none; color:inherit" href="#91"> 91</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="92"><a style="outline: none; text-decoration:none; color:inherit" href="#92"> 92</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="93"><a style="outline: none; text-decoration:none; color:inherit" href="#93"> 93</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="94"><a style="outline: none; text-decoration:none; color:inherit" href="#94"> 94</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="95"><a style="outline: none; text-decoration:none; color:inherit" href="#95"> 95</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="96"><a style="outline: none; text-decoration:none; color:inherit" href="#96"> 96</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="97"><a style="outline: none; text-decoration:none; color:inherit" href="#97"> 97</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="98"><a style="outline: none; text-decoration:none; color:inherit" href="#98"> 98</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="99"><a style="outline: none; text-decoration:none; color:inherit" href="#99"> 99</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="100"><a style="outline: none; text-decoration:none; color:inherit" href="#100">100</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="101"><a style="outline: none; text-decoration:none; color:inherit" href="#101">101</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="102"><a style="outline: none; text-decoration:none; color:inherit" href="#102">102</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="103"><a style="outline: none; text-decoration:none; color:inherit" href="#103">103</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="104"><a style="outline: none; text-decoration:none; color:inherit" href="#104">104</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="105"><a style="outline: none; text-decoration:none; color:inherit" href="#105">105</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="106"><a style="outline: none; text-decoration:none; color:inherit" href="#106">106</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="107"><a style="outline: none; text-decoration:none; color:inherit" href="#107">107</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="108"><a style="outline: none; text-decoration:none; color:inherit" href="#108">108</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="109"><a style="outline: none; text-decoration:none; color:inherit" href="#109">109</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="110"><a style="outline: none; text-decoration:none; color:inherit" href="#110">110</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="111"><a style="outline: none; text-decoration:none; color:inherit" href="#111">111</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="112"><a style="outline: none; text-decoration:none; color:inherit" href="#112">112</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="113"><a style="outline: none; text-decoration:none; color:inherit" href="#113">113</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="114"><a style="outline: none; text-decoration:none; color:inherit" href="#114">114</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="115"><a style="outline: none; text-decoration:none; color:inherit" href="#115">115</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="116"><a style="outline: none; text-decoration:none; color:inherit" href="#116">116</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="117"><a style="outline: none; text-decoration:none; color:inherit" href="#117">117</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="118"><a style="outline: none; text-decoration:none; color:inherit" href="#118">118</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="119"><a style="outline: none; text-decoration:none; color:inherit" href="#119">119</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="120"><a style="outline: none; text-decoration:none; color:inherit" href="#120">120</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="121"><a style="outline: none; text-decoration:none; color:inherit" href="#121">121</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="122"><a style="outline: none; text-decoration:none; color:inherit" href="#122">122</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="123"><a style="outline: none; text-decoration:none; color:inherit" href="#123">123</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="124"><a style="outline: none; text-decoration:none; color:inherit" href="#124">124</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="125"><a style="outline: none; text-decoration:none; color:inherit" href="#125">125</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="126"><a style="outline: none; text-decoration:none; color:inherit" href="#126">126</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="127"><a style="outline: none; text-decoration:none; color:inherit" href="#127">127</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="128"><a style="outline: none; text-decoration:none; color:inherit" href="#128">128</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="129"><a style="outline: none; text-decoration:none; color:inherit" href="#129">129</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="130"><a style="outline: none; text-decoration:none; color:inherit" href="#130">130</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="131"><a style="outline: none; text-decoration:none; color:inherit" href="#131">131</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="132"><a style="outline: none; text-decoration:none; color:inherit" href="#132">132</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="133"><a style="outline: none; text-decoration:none; color:inherit" href="#133">133</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="134"><a style="outline: none; text-decoration:none; color:inherit" href="#134">134</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="135"><a style="outline: none; text-decoration:none; color:inherit" href="#135">135</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="136"><a style="outline: none; text-decoration:none; color:inherit" href="#136">136</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="137"><a style="outline: none; text-decoration:none; color:inherit" href="#137">137</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="138"><a style="outline: none; text-decoration:none; color:inherit" href="#138">138</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="139"><a style="outline: none; text-decoration:none; color:inherit" href="#139">139</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="140"><a style="outline: none; text-decoration:none; color:inherit" href="#140">140</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="141"><a style="outline: none; text-decoration:none; color:inherit" href="#141">141</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="142"><a style="outline: none; text-decoration:none; color:inherit" href="#142">142</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="143"><a style="outline: none; text-decoration:none; color:inherit" href="#143">143</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="144"><a style="outline: none; text-decoration:none; color:inherit" href="#144">144</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="145"><a style="outline: none; text-decoration:none; color:inherit" href="#145">145</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="146"><a style="outline: none; text-decoration:none; color:inherit" href="#146">146</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="147"><a style="outline: none; text-decoration:none; color:inherit" href="#147">147</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="148"><a style="outline: none; text-decoration:none; color:inherit" href="#148">148</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="149"><a style="outline: none; text-decoration:none; color:inherit" href="#149">149</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="150"><a style="outline: none; text-decoration:none; color:inherit" href="#150">150</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="151"><a style="outline: none; text-decoration:none; color:inherit" href="#151">151</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="152"><a style="outline: none; text-decoration:none; color:inherit" href="#152">152</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="153"><a style="outline: none; text-decoration:none; color:inherit" href="#153">153</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="154"><a style="outline: none; text-decoration:none; color:inherit" href="#154">154</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="155"><a style="outline: none; text-decoration:none; color:inherit" href="#155">155</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="156"><a style="outline: none; text-decoration:none; color:inherit" href="#156">156</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="157"><a style="outline: none; text-decoration:none; color:inherit" href="#157">157</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="158"><a style="outline: none; text-decoration:none; color:inherit" href="#158">158</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="159"><a style="outline: none; text-decoration:none; color:inherit" href="#159">159</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="160"><a style="outline: none; text-decoration:none; color:inherit" href="#160">160</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="161"><a style="outline: none; text-decoration:none; color:inherit" href="#161">161</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="162"><a style="outline: none; text-decoration:none; color:inherit" href="#162">162</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="163"><a style="outline: none; text-decoration:none; color:inherit" href="#163">163</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="164"><a style="outline: none; text-decoration:none; color:inherit" href="#164">164</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="165"><a style="outline: none; text-decoration:none; color:inherit" href="#165">165</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="166"><a style="outline: none; text-decoration:none; color:inherit" href="#166">166</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="167"><a style="outline: none; text-decoration:none; color:inherit" href="#167">167</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="168"><a style="outline: none; text-decoration:none; color:inherit" href="#168">168</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="169"><a style="outline: none; text-decoration:none; color:inherit" href="#169">169</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="170"><a style="outline: none; text-decoration:none; color:inherit" href="#170">170</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="171"><a style="outline: none; text-decoration:none; color:inherit" href="#171">171</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="172"><a style="outline: none; text-decoration:none; color:inherit" href="#172">172</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="173"><a style="outline: none; text-decoration:none; color:inherit" href="#173">173</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="174"><a style="outline: none; text-decoration:none; color:inherit" href="#174">174</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="175"><a style="outline: none; text-decoration:none; color:inherit" href="#175">175</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="176"><a style="outline: none; text-decoration:none; color:inherit" href="#176">176</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="177"><a style="outline: none; text-decoration:none; color:inherit" href="#177">177</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="178"><a style="outline: none; text-decoration:none; color:inherit" href="#178">178</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="179"><a style="outline: none; text-decoration:none; color:inherit" href="#179">179</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="180"><a style="outline: none; text-decoration:none; color:inherit" href="#180">180</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="181"><a style="outline: none; text-decoration:none; color:inherit" href="#181">181</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="182"><a style="outline: none; text-decoration:none; color:inherit" href="#182">182</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="183"><a style="outline: none; text-decoration:none; color:inherit" href="#183">183</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="184"><a style="outline: none; text-decoration:none; color:inherit" href="#184">184</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="185"><a style="outline: none; text-decoration:none; color:inherit" href="#185">185</a>
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="language-php" data-lang="php"><span style="color:#ce5c00;font-weight:bold">&lt;?</span><span style="color:#000">php</span>
+
+<span style="color:#204a87;font-weight:bold">declare</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">strict_types</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">);</span>
+
+<span style="color:#204a87;font-weight:bold">namespace</span> <span style="color:#000">Utils\Rector\Rector</span><span style="color:#000;font-weight:bold">;</span>
+
+
+<span style="color:#204a87;font-weight:bold">use</span> <span style="color:#000">PhpParser\Node</span><span style="color:#000;font-weight:bold">;</span>
+<span style="color:#204a87;font-weight:bold">use</span> <span style="color:#000">Rector\Core\Contract\Rector\ConfigurableRectorInterface</span><span style="color:#000;font-weight:bold">;</span>
+<span style="color:#204a87;font-weight:bold">use</span> <span style="color:#000">Rector\Core\Rector\AbstractRector</span><span style="color:#000;font-weight:bold">;</span>
+<span style="color:#204a87;font-weight:bold">use</span> <span style="color:#000">Symfony\Component\Routing\Annotation\Route</span><span style="color:#000;font-weight:bold">;</span>
+<span style="color:#204a87;font-weight:bold">use</span> <span style="color:#000">Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample</span><span style="color:#000;font-weight:bold">;</span>
+<span style="color:#204a87;font-weight:bold">use</span> <span style="color:#000">Symplify\RuleDocGenerator\ValueObject\RuleDefinition</span><span style="color:#000;font-weight:bold">;</span>
+
+<span style="color:#204a87;font-weight:bold">class</span> <span style="color:#000">SymfonyYamlToAttributeRoutingRector</span> <span style="color:#204a87;font-weight:bold">extends</span> <span style="color:#000">AbstractRector</span> <span style="color:#204a87;font-weight:bold">implements</span> <span style="color:#000">ConfigurableRectorInterface</span>
+<span style="color:#000;font-weight:bold">{</span>
+    <span style="color:#204a87;font-weight:bold">public</span> <span style="color:#204a87;font-weight:bold">const</span> <span style="color:#000">ROUTES</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#4e9a06">&#39;ROUTES&#39;</span><span style="color:#000;font-weight:bold">;</span>
+
+    <span style="color:#204a87;font-weight:bold">private</span> <span style="color:#204a87;font-weight:bold">array</span> <span style="color:#000">$routes</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">[];</span>
+
+    <span style="color:#204a87;font-weight:bold">public</span> <span style="color:#204a87;font-weight:bold">function</span> <span style="color:#000">configure</span><span style="color:#000;font-weight:bold">(</span><span style="color:#204a87;font-weight:bold">array</span> <span style="color:#000">$configuration</span><span style="color:#000;font-weight:bold">)</span><span style="color:#ce5c00;font-weight:bold">:</span> <span style="color:#000">void</span>
+    <span style="color:#000;font-weight:bold">{</span>
+        <span style="color:#000">$this</span><span style="color:#ce5c00;font-weight:bold">-&gt;</span><span style="color:#c4a000">routes</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#000">$configuration</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">self</span><span style="color:#ce5c00;font-weight:bold">::</span><span style="color:#c4a000">ROUTES</span><span style="color:#000;font-weight:bold">];</span>
+    <span style="color:#000;font-weight:bold">}</span>
+
+    <span style="color:#204a87;font-weight:bold">public</span> <span style="color:#204a87;font-weight:bold">function</span> <span style="color:#000">getRuleDefinition</span><span style="color:#000;font-weight:bold">()</span><span style="color:#ce5c00;font-weight:bold">:</span> <span style="color:#000">RuleDefinition</span>
+    <span style="color:#000;font-weight:bold">{</span>
+        <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#204a87;font-weight:bold">new</span> <span style="color:#000">RuleDefinition</span><span style="color:#000;font-weight:bold">(</span>
+            <span style="color:#4e9a06">&#39;Replace routing yaml to attributes&#39;</span><span style="color:#000;font-weight:bold">,</span>
+            <span style="color:#000;font-weight:bold">[</span>
+                <span style="color:#204a87;font-weight:bold">new</span> <span style="color:#000">CodeSample</span><span style="color:#000;font-weight:bold">(</span>
+                    <span style="color:#4e9a06">&#39;a&#39;</span><span style="color:#000;font-weight:bold">,</span>
+                    <span style="color:#4e9a06">&#39;b&#39;</span><span style="color:#000;font-weight:bold">,</span>
+                <span style="color:#000;font-weight:bold">),</span>
+            <span style="color:#000;font-weight:bold">]</span>
+        <span style="color:#000;font-weight:bold">);</span>
+    <span style="color:#000;font-weight:bold">}</span>
+
+    <span style="color:#204a87;font-weight:bold">public</span> <span style="color:#204a87;font-weight:bold">function</span> <span style="color:#000">getNodeTypes</span><span style="color:#000;font-weight:bold">()</span><span style="color:#ce5c00;font-weight:bold">:</span> <span style="color:#204a87;font-weight:bold">array</span>
+    <span style="color:#000;font-weight:bold">{</span>
+        <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000;font-weight:bold">[</span>
+            <span style="color:#000">Node\Stmt\ClassMethod</span><span style="color:#ce5c00;font-weight:bold">::</span><span style="color:#c4a000">class</span><span style="color:#000;font-weight:bold">,</span>
+        <span style="color:#000;font-weight:bold">];</span>
+    <span style="color:#000;font-weight:bold">}</span>
+
+    <span style="color:#8f5902;font-style:italic">/**
+</span><span style="color:#8f5902;font-style:italic">     * @param Node\Stmt\ClassMethod $node
+</span><span style="color:#8f5902;font-style:italic">     * @return Node|null
+</span><span style="color:#8f5902;font-style:italic">     */</span>
+    <span style="color:#204a87;font-weight:bold">public</span> <span style="color:#204a87;font-weight:bold">function</span> <span style="color:#000">refactor</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">Node</span> <span style="color:#000">$node</span><span style="color:#000;font-weight:bold">)</span><span style="color:#ce5c00;font-weight:bold">:</span> <span style="color:#ce5c00;font-weight:bold">?</span><span style="color:#000">Node</span>
+    <span style="color:#000;font-weight:bold">{</span>
+        <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#ce5c00;font-weight:bold">!</span><span style="color:#000">$node</span><span style="color:#ce5c00;font-weight:bold">-&gt;</span><span style="color:#c4a000">isPublic</span><span style="color:#000;font-weight:bold">()</span> <span style="color:#ce5c00;font-weight:bold">||</span> <span style="color:#000">$node</span><span style="color:#ce5c00;font-weight:bold">-&gt;</span><span style="color:#c4a000">isMagic</span><span style="color:#000;font-weight:bold">())</span> <span style="color:#000;font-weight:bold">{</span>
+            <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#204a87;font-weight:bold">null</span><span style="color:#000;font-weight:bold">;</span>
+        <span style="color:#000;font-weight:bold">}</span>
+
+        <span style="color:#000">$class</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#000">$this</span><span style="color:#ce5c00;font-weight:bold">-&gt;</span><span style="color:#c4a000">betterNodeFinder</span><span style="color:#ce5c00;font-weight:bold">-&gt;</span><span style="color:#c4a000">findParentType</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">$node</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">Node\Stmt\ClassLike</span><span style="color:#ce5c00;font-weight:bold">::</span><span style="color:#c4a000">class</span><span style="color:#000;font-weight:bold">);</span>
+        <span style="color:#000">$className</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#000">$this</span><span style="color:#ce5c00;font-weight:bold">-&gt;</span><span style="color:#c4a000">getName</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">$class</span><span style="color:#000;font-weight:bold">);</span>
+        <span style="color:#000">$methodName</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#000">$this</span><span style="color:#ce5c00;font-weight:bold">-&gt;</span><span style="color:#c4a000">getName</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">$node</span><span style="color:#000;font-weight:bold">);</span>
+        <span style="color:#000">$controllerPath</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#000">$className</span> <span style="color:#ce5c00;font-weight:bold">.</span> <span style="color:#4e9a06">&#39;::&#39;</span> <span style="color:#ce5c00;font-weight:bold">.</span> <span style="color:#000">$methodName</span><span style="color:#000;font-weight:bold">;</span>
+        <span style="color:#000">$routeConfigs</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#000">$this</span><span style="color:#ce5c00;font-weight:bold">-&gt;</span><span style="color:#c4a000">routes</span><span style="color:#000;font-weight:bold">[</span><span style="color:#000">$controllerPath</span><span style="color:#000;font-weight:bold">]</span> <span style="color:#ce5c00;font-weight:bold">??</span> <span style="color:#204a87;font-weight:bold">null</span><span style="color:#000;font-weight:bold">;</span>
+
+        <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#ce5c00;font-weight:bold">!</span><span style="color:#000">$routeConfigs</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+            <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#204a87;font-weight:bold">null</span><span style="color:#000;font-weight:bold">;</span>
+        <span style="color:#000;font-weight:bold">}</span>
+
+        <span style="color:#000">$attrGroups</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">[];</span>
+
+        <span style="color:#204a87;font-weight:bold">foreach</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">$routeConfigs</span> <span style="color:#204a87;font-weight:bold">as</span> <span style="color:#000">$routeConfig</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+
+            <span style="color:#000">$args</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">[</span>
+                <span style="color:#204a87;font-weight:bold">new</span> <span style="color:#000">Node\Arg</span><span style="color:#000;font-weight:bold">(</span>
+                    <span style="color:#000">value</span><span style="color:#ce5c00;font-weight:bold">:</span> <span style="color:#204a87;font-weight:bold">new</span> <span style="color:#000">Node\Scalar\String_</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">$routeConfig</span><span style="color:#000;font-weight:bold">[</span><span style="color:#4e9a06">&#39;path&#39;</span><span style="color:#000;font-weight:bold">]),</span>
+                    <span style="color:#000">name</span><span style="color:#ce5c00;font-weight:bold">:</span> <span style="color:#204a87;font-weight:bold">new</span> <span style="color:#000">Node\Identifier</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#39;path&#39;</span><span style="color:#000;font-weight:bold">),</span>
+                <span style="color:#000;font-weight:bold">),</span>
+                <span style="color:#204a87;font-weight:bold">new</span> <span style="color:#000">Node\Arg</span><span style="color:#000;font-weight:bold">(</span>
+                    <span style="color:#000">value</span><span style="color:#ce5c00;font-weight:bold">:</span> <span style="color:#204a87;font-weight:bold">new</span> <span style="color:#000">Node\Scalar\String_</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">$routeConfig</span><span style="color:#000;font-weight:bold">[</span><span style="color:#4e9a06">&#39;____name&#39;</span><span style="color:#000;font-weight:bold">]),</span>
+                    <span style="color:#000">name</span><span style="color:#ce5c00;font-weight:bold">:</span> <span style="color:#204a87;font-weight:bold">new</span> <span style="color:#000">Node\Identifier</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#39;name&#39;</span><span style="color:#000;font-weight:bold">),</span>
+                <span style="color:#000;font-weight:bold">),</span>
+            <span style="color:#000;font-weight:bold">];</span>
+
+            <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">$routeConfig</span><span style="color:#000;font-weight:bold">[</span><span style="color:#4e9a06">&#39;method&#39;</span><span style="color:#000;font-weight:bold">]</span> <span style="color:#ce5c00;font-weight:bold">!==</span> <span style="color:#4e9a06">&#39;ANY&#39;</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+                <span style="color:#000">$method</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#000">array_map</span><span style="color:#000;font-weight:bold">(</span>
+                    <span style="color:#204a87;font-weight:bold">static</span> <span style="color:#000">fn</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">string</span> <span style="color:#000">$m</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#ce5c00;font-weight:bold">=&gt;</span> <span style="color:#204a87;font-weight:bold">new</span> <span style="color:#000">Node\Expr\ArrayItem</span><span style="color:#000;font-weight:bold">(</span><span style="color:#204a87;font-weight:bold">new</span> <span style="color:#000">Node\Scalar\String_</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">$m</span><span style="color:#000;font-weight:bold">)),</span>
+                    <span style="color:#000">explode</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#39;|&#39;</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">$routeConfig</span><span style="color:#000;font-weight:bold">[</span><span style="color:#4e9a06">&#39;method&#39;</span><span style="color:#000;font-weight:bold">])</span>
+                <span style="color:#000;font-weight:bold">);</span>
+
+                <span style="color:#000">$args</span><span style="color:#000;font-weight:bold">[]</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#204a87;font-weight:bold">new</span> <span style="color:#000">Node\Arg</span><span style="color:#000;font-weight:bold">(</span>
+                    <span style="color:#000">value</span><span style="color:#ce5c00;font-weight:bold">:</span> <span style="color:#204a87;font-weight:bold">new</span> <span style="color:#000">Node\Expr\Array_</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">$method</span><span style="color:#000;font-weight:bold">),</span>
+                    <span style="color:#000">name</span><span style="color:#ce5c00;font-weight:bold">:</span> <span style="color:#204a87;font-weight:bold">new</span> <span style="color:#000">Node\Identifier</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#39;methods&#39;</span><span style="color:#000;font-weight:bold">)</span>
+                <span style="color:#000;font-weight:bold">);</span>
+            <span style="color:#000;font-weight:bold">}</span>
+
+            <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">$routeConfig</span><span style="color:#000;font-weight:bold">[</span><span style="color:#4e9a06">&#39;defaults&#39;</span><span style="color:#000;font-weight:bold">])</span> <span style="color:#000;font-weight:bold">{</span>
+
+                <span style="color:#000">$defaultsArrayItems</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">[];</span>
+
+                <span style="color:#204a87;font-weight:bold">foreach</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">$routeConfig</span><span style="color:#000;font-weight:bold">[</span><span style="color:#4e9a06">&#39;defaults&#39;</span><span style="color:#000;font-weight:bold">]</span> <span style="color:#204a87;font-weight:bold">as</span> <span style="color:#000">$defaultsKey</span> <span style="color:#ce5c00;font-weight:bold">=&gt;</span> <span style="color:#000">$defaultsValue</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+                    
+                    <span style="color:#000">$defaultsArrayItems</span><span style="color:#000;font-weight:bold">[]</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#000">$this</span><span style="color:#ce5c00;font-weight:bold">-&gt;</span><span style="color:#c4a000">getArrayItem</span><span style="color:#000;font-weight:bold">(</span>
+                        <span style="color:#000">is_string</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">$defaultsKey</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#ce5c00;font-weight:bold">?</span> <span style="color:#000">$defaultsKey</span> <span style="color:#ce5c00;font-weight:bold">:</span> <span style="color:#204a87;font-weight:bold">null</span><span style="color:#000;font-weight:bold">,</span>
+                        <span style="color:#000">$defaultsValue</span>
+                    <span style="color:#000;font-weight:bold">);</span>
+                <span style="color:#000;font-weight:bold">}</span>
+
+                <span style="color:#000">$args</span><span style="color:#000;font-weight:bold">[]</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#204a87;font-weight:bold">new</span> <span style="color:#000">Node\Arg</span><span style="color:#000;font-weight:bold">(</span>
+                    <span style="color:#000">value</span><span style="color:#ce5c00;font-weight:bold">:</span> <span style="color:#204a87;font-weight:bold">new</span> <span style="color:#000">Node\Expr\Array_</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">$defaultsArrayItems</span><span style="color:#000;font-weight:bold">),</span>
+                    <span style="color:#000">name</span><span style="color:#ce5c00;font-weight:bold">:</span> <span style="color:#204a87;font-weight:bold">new</span> <span style="color:#000">Node\Identifier</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#39;defaults&#39;</span><span style="color:#000;font-weight:bold">),</span>
+                <span style="color:#000;font-weight:bold">);</span>
+            <span style="color:#000;font-weight:bold">}</span>
+
+            <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">$routeConfig</span><span style="color:#000;font-weight:bold">[</span><span style="color:#4e9a06">&#39;options&#39;</span><span style="color:#000;font-weight:bold">])</span> <span style="color:#000;font-weight:bold">{</span>
+                <span style="color:#000">$optionsArrayItems</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">[];</span>
+
+                <span style="color:#204a87;font-weight:bold">foreach</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">$routeConfig</span><span style="color:#000;font-weight:bold">[</span><span style="color:#4e9a06">&#39;options&#39;</span><span style="color:#000;font-weight:bold">]</span> <span style="color:#204a87;font-weight:bold">as</span> <span style="color:#000">$optionsKey</span> <span style="color:#ce5c00;font-weight:bold">=&gt;</span> <span style="color:#000">$optionsValue</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+                    <span style="color:#000">$optionsArrayItems</span><span style="color:#000;font-weight:bold">[]</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#000">$this</span><span style="color:#ce5c00;font-weight:bold">-&gt;</span><span style="color:#c4a000">getArrayItem</span><span style="color:#000;font-weight:bold">(</span>
+                        <span style="color:#000">is_string</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">$optionsKey</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#ce5c00;font-weight:bold">?</span> <span style="color:#000">$optionsKey</span> <span style="color:#ce5c00;font-weight:bold">:</span> <span style="color:#204a87;font-weight:bold">null</span><span style="color:#000;font-weight:bold">,</span>
+                        <span style="color:#000">$optionsValue</span><span style="color:#000;font-weight:bold">,</span>
+                    <span style="color:#000;font-weight:bold">);</span>
+                <span style="color:#000;font-weight:bold">}</span>
+
+                <span style="color:#000">$args</span><span style="color:#000;font-weight:bold">[]</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#204a87;font-weight:bold">new</span> <span style="color:#000">Node\Arg</span><span style="color:#000;font-weight:bold">(</span>
+                    <span style="color:#000">value</span><span style="color:#ce5c00;font-weight:bold">:</span> <span style="color:#204a87;font-weight:bold">new</span> <span style="color:#000">Node\Expr\Array_</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">$optionsArrayItems</span><span style="color:#000;font-weight:bold">),</span>
+                    <span style="color:#000">name</span><span style="color:#ce5c00;font-weight:bold">:</span> <span style="color:#204a87;font-weight:bold">new</span> <span style="color:#000">Node\Identifier</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#39;options&#39;</span><span style="color:#000;font-weight:bold">)</span>
+                <span style="color:#000;font-weight:bold">);</span>
+            <span style="color:#000;font-weight:bold">}</span>
+
+            <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">is_array</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">$routeConfig</span><span style="color:#000;font-weight:bold">[</span><span style="color:#4e9a06">&#39;requirements&#39;</span><span style="color:#000;font-weight:bold">]))</span> <span style="color:#000;font-weight:bold">{</span>
+                <span style="color:#000">$requirementsArrayItems</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">[];</span>
+
+                <span style="color:#204a87;font-weight:bold">foreach</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">$routeConfig</span><span style="color:#000;font-weight:bold">[</span><span style="color:#4e9a06">&#39;requirements&#39;</span><span style="color:#000;font-weight:bold">]</span> <span style="color:#204a87;font-weight:bold">as</span> <span style="color:#000">$requirementKey</span> <span style="color:#ce5c00;font-weight:bold">=&gt;</span> <span style="color:#000">$requirementValue</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+                    <span style="color:#000">$requirementsArrayItems</span><span style="color:#000;font-weight:bold">[]</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#000">$this</span><span style="color:#ce5c00;font-weight:bold">-&gt;</span><span style="color:#c4a000">getArrayItem</span><span style="color:#000;font-weight:bold">(</span>
+                        <span style="color:#000">is_string</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">$requirementKey</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#ce5c00;font-weight:bold">?</span> <span style="color:#000">$requirementKey</span> <span style="color:#ce5c00;font-weight:bold">:</span> <span style="color:#204a87;font-weight:bold">null</span><span style="color:#000;font-weight:bold">,</span>
+                        <span style="color:#000">$requirementValue</span><span style="color:#000;font-weight:bold">,</span>
+                    <span style="color:#000;font-weight:bold">);</span>
+                <span style="color:#000;font-weight:bold">}</span>
+
+                <span style="color:#000">$args</span><span style="color:#000;font-weight:bold">[]</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#204a87;font-weight:bold">new</span> <span style="color:#000">Node\Arg</span><span style="color:#000;font-weight:bold">(</span>
+                    <span style="color:#000">value</span><span style="color:#ce5c00;font-weight:bold">:</span> <span style="color:#204a87;font-weight:bold">new</span> <span style="color:#000">Node\Expr\Array_</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">$requirementsArrayItems</span><span style="color:#000;font-weight:bold">),</span>
+                    <span style="color:#000">name</span><span style="color:#ce5c00;font-weight:bold">:</span> <span style="color:#204a87;font-weight:bold">new</span> <span style="color:#000">Node\Identifier</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#39;requirements&#39;</span><span style="color:#000;font-weight:bold">)</span>
+                <span style="color:#000;font-weight:bold">);</span>
+            <span style="color:#000;font-weight:bold">}</span>
+
+            <span style="color:#000">$attrGroups</span><span style="color:#000;font-weight:bold">[]</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#204a87;font-weight:bold">new</span> <span style="color:#000">Node\AttributeGroup</span><span style="color:#000;font-weight:bold">([</span>
+                <span style="color:#204a87;font-weight:bold">new</span> <span style="color:#000">Node\Attribute</span><span style="color:#000;font-weight:bold">(</span>
+                    <span style="color:#204a87;font-weight:bold">new</span> <span style="color:#000">Node\Name</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">Route</span><span style="color:#ce5c00;font-weight:bold">::</span><span style="color:#c4a000">class</span><span style="color:#000;font-weight:bold">),</span>
+                    <span style="color:#000">$args</span><span style="color:#000;font-weight:bold">,</span>
+                <span style="color:#000;font-weight:bold">),</span>
+            <span style="color:#000;font-weight:bold">]);</span>
+        <span style="color:#000;font-weight:bold">}</span>
+
+        <span style="color:#000">$node</span><span style="color:#ce5c00;font-weight:bold">-&gt;</span><span style="color:#c4a000">attrGroups</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#000">$attrGroups</span><span style="color:#000;font-weight:bold">;</span>
+
+        <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#000">$node</span><span style="color:#000;font-weight:bold">;</span>
+    <span style="color:#000;font-weight:bold">}</span>
+
+    <span style="color:#204a87;font-weight:bold">private</span> <span style="color:#204a87;font-weight:bold">function</span> <span style="color:#000">getArrayItem</span><span style="color:#000;font-weight:bold">(</span><span style="color:#ce5c00;font-weight:bold">?</span><span style="color:#000">string</span> <span style="color:#000">$k</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">string</span><span style="color:#ce5c00;font-weight:bold">|</span><span style="color:#204a87;font-weight:bold">array</span><span style="color:#ce5c00;font-weight:bold">|</span><span style="color:#000">float</span><span style="color:#ce5c00;font-weight:bold">|</span><span style="color:#000">bool</span> <span style="color:#000">$v</span><span style="color:#000;font-weight:bold">)</span><span style="color:#ce5c00;font-weight:bold">:</span> <span style="color:#000">Node\Expr\ArrayItem</span>
+    <span style="color:#000;font-weight:bold">{</span>
+        <span style="color:#204a87;font-weight:bold">if</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">is_array</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">$v</span><span style="color:#000;font-weight:bold">))</span> <span style="color:#000;font-weight:bold">{</span>
+
+            <span style="color:#000">$valueFromArray</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">[];</span>
+
+            <span style="color:#204a87;font-weight:bold">foreach</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">$v</span> <span style="color:#204a87;font-weight:bold">as</span> <span style="color:#000">$subK</span> <span style="color:#ce5c00;font-weight:bold">=&gt;</span> <span style="color:#000">$subV</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+                <span style="color:#000">$valueFromArray</span><span style="color:#000;font-weight:bold">[]</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#000">$this</span><span style="color:#ce5c00;font-weight:bold">-&gt;</span><span style="color:#c4a000">getArrayItem</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">$subK</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000">$subV</span><span style="color:#000;font-weight:bold">);</span>
+            <span style="color:#000;font-weight:bold">}</span>
+
+            <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#204a87;font-weight:bold">new</span> <span style="color:#000">Node\Expr\ArrayItem</span><span style="color:#000;font-weight:bold">(</span>
+                <span style="color:#000">value</span><span style="color:#ce5c00;font-weight:bold">:</span> <span style="color:#204a87;font-weight:bold">new</span> <span style="color:#000">Node\Expr\Array_</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">$valueFromArray</span><span style="color:#000;font-weight:bold">),</span>
+                <span style="color:#000">key</span><span style="color:#ce5c00;font-weight:bold">:</span> <span style="color:#000">$k</span> <span style="color:#ce5c00;font-weight:bold">===</span> <span style="color:#204a87;font-weight:bold">null</span> <span style="color:#ce5c00;font-weight:bold">?</span> <span style="color:#204a87;font-weight:bold">null</span> <span style="color:#ce5c00;font-weight:bold">:</span> <span style="color:#204a87;font-weight:bold">new</span> <span style="color:#000">Node\Scalar\String_</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">$k</span><span style="color:#000;font-weight:bold">)</span>
+            <span style="color:#000;font-weight:bold">);</span>
+        <span style="color:#000;font-weight:bold">}</span>
+
+        <span style="color:#000">$finalValue</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#000">match</span><span style="color:#000;font-weight:bold">(</span><span style="color:#204a87;font-weight:bold">true</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#000;font-weight:bold">{</span>
+            <span style="color:#000">is_float</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">$v</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#ce5c00;font-weight:bold">=&gt;</span> <span style="color:#204a87;font-weight:bold">new</span> <span style="color:#000">Node\Scalar\DNumber</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">$v</span><span style="color:#000;font-weight:bold">),</span>
+            <span style="color:#000">is_string</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">$v</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#ce5c00;font-weight:bold">=&gt;</span> <span style="color:#204a87;font-weight:bold">new</span> <span style="color:#000">Node\Scalar\String_</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">$v</span><span style="color:#000;font-weight:bold">),</span>
+            <span style="color:#000">is_bool</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">$v</span><span style="color:#000;font-weight:bold">)</span> <span style="color:#ce5c00;font-weight:bold">=&gt;</span> <span style="color:#000">$v</span> <span style="color:#ce5c00;font-weight:bold">===</span> <span style="color:#204a87;font-weight:bold">true</span>
+                <span style="color:#ce5c00;font-weight:bold">?</span> <span style="color:#204a87;font-weight:bold">new</span> <span style="color:#000">Node\Expr\ConstFetch</span><span style="color:#000;font-weight:bold">(</span><span style="color:#204a87;font-weight:bold">new</span> <span style="color:#000">Node\Name</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#39;true&#39;</span><span style="color:#000;font-weight:bold">))</span>
+                <span style="color:#ce5c00;font-weight:bold">:</span> <span style="color:#204a87;font-weight:bold">new</span> <span style="color:#000">Node\Expr\ConstFetch</span><span style="color:#000;font-weight:bold">(</span><span style="color:#204a87;font-weight:bold">new</span> <span style="color:#000">Node\Name</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#39;false&#39;</span><span style="color:#000;font-weight:bold">)),</span>
+        <span style="color:#000;font-weight:bold">};</span>
+
+        <span style="color:#204a87;font-weight:bold">return</span> <span style="color:#204a87;font-weight:bold">new</span> <span style="color:#000">Node\Expr\ArrayItem</span><span style="color:#000;font-weight:bold">(</span>
+            <span style="color:#000">value</span><span style="color:#ce5c00;font-weight:bold">:</span> <span style="color:#000">$finalValue</span><span style="color:#000;font-weight:bold">,</span>
+            <span style="color:#000">key</span><span style="color:#ce5c00;font-weight:bold">:</span> <span style="color:#000">$k</span> <span style="color:#ce5c00;font-weight:bold">===</span> <span style="color:#204a87;font-weight:bold">null</span> <span style="color:#ce5c00;font-weight:bold">?</span> <span style="color:#204a87;font-weight:bold">null</span> <span style="color:#ce5c00;font-weight:bold">:</span> <span style="color:#204a87;font-weight:bold">new</span> <span style="color:#000">Node\Scalar\String_</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">$k</span><span style="color:#000;font-weight:bold">)</span>
+        <span style="color:#000;font-weight:bold">);</span>
+    <span style="color:#000;font-weight:bold">}</span>
+<span style="color:#000;font-weight:bold">}</span>
+</code></pre></td></tr></table>
+</div>
+</div><p>And <code>rector.php</code> config</p>
+<div class="highlight"><div style="background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="1"><a style="outline: none; text-decoration:none; color:inherit" href="#1"> 1</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="2"><a style="outline: none; text-decoration:none; color:inherit" href="#2"> 2</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="3"><a style="outline: none; text-decoration:none; color:inherit" href="#3"> 3</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="4"><a style="outline: none; text-decoration:none; color:inherit" href="#4"> 4</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="5"><a style="outline: none; text-decoration:none; color:inherit" href="#5"> 5</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="6"><a style="outline: none; text-decoration:none; color:inherit" href="#6"> 6</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="7"><a style="outline: none; text-decoration:none; color:inherit" href="#7"> 7</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="8"><a style="outline: none; text-decoration:none; color:inherit" href="#8"> 8</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="9"><a style="outline: none; text-decoration:none; color:inherit" href="#9"> 9</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="10"><a style="outline: none; text-decoration:none; color:inherit" href="#10">10</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="11"><a style="outline: none; text-decoration:none; color:inherit" href="#11">11</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="12"><a style="outline: none; text-decoration:none; color:inherit" href="#12">12</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="13"><a style="outline: none; text-decoration:none; color:inherit" href="#13">13</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="14"><a style="outline: none; text-decoration:none; color:inherit" href="#14">14</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="15"><a style="outline: none; text-decoration:none; color:inherit" href="#15">15</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="16"><a style="outline: none; text-decoration:none; color:inherit" href="#16">16</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="17"><a style="outline: none; text-decoration:none; color:inherit" href="#17">17</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="18"><a style="outline: none; text-decoration:none; color:inherit" href="#18">18</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="19"><a style="outline: none; text-decoration:none; color:inherit" href="#19">19</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="20"><a style="outline: none; text-decoration:none; color:inherit" href="#20">20</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="21"><a style="outline: none; text-decoration:none; color:inherit" href="#21">21</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="22"><a style="outline: none; text-decoration:none; color:inherit" href="#22">22</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="23"><a style="outline: none; text-decoration:none; color:inherit" href="#23">23</a>
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="language-php" data-lang="php"><span style="color:#ce5c00;font-weight:bold">&lt;?</span><span style="color:#000">php</span>
+
+<span style="color:#204a87;font-weight:bold">declare</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">strict_types</span><span style="color:#ce5c00;font-weight:bold">=</span><span style="color:#0000cf;font-weight:bold">1</span><span style="color:#000;font-weight:bold">);</span>
+
+<span style="color:#204a87;font-weight:bold">use</span> <span style="color:#000">Rector\Core\Configuration\Option</span><span style="color:#000;font-weight:bold">;</span>
+<span style="color:#204a87;font-weight:bold">use</span> <span style="color:#000">Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator</span><span style="color:#000;font-weight:bold">;</span>
+<span style="color:#204a87;font-weight:bold">use</span> <span style="color:#000">Utils\Rector\Rector\SymfonyYamlToAttributeRoutingRector</span><span style="color:#000;font-weight:bold">;</span>
+
+<span style="color:#204a87;font-weight:bold">return</span> <span style="color:#204a87;font-weight:bold">static</span> <span style="color:#204a87;font-weight:bold">function</span> <span style="color:#000;font-weight:bold">(</span><span style="color:#000">ContainerConfigurator</span> <span style="color:#000">$containerConfigurator</span><span style="color:#000;font-weight:bold">)</span><span style="color:#ce5c00;font-weight:bold">:</span> <span style="color:#000">void</span> <span style="color:#000;font-weight:bold">{</span>
+    <span style="color:#8f5902;font-style:italic">// get parameters
+</span><span style="color:#8f5902;font-style:italic"></span>    <span style="color:#000">$parameters</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#000">$containerConfigurator</span><span style="color:#ce5c00;font-weight:bold">-&gt;</span><span style="color:#c4a000">parameters</span><span style="color:#000;font-weight:bold">();</span>
+    <span style="color:#000">$parameters</span><span style="color:#ce5c00;font-weight:bold">-&gt;</span><span style="color:#c4a000">set</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">Option</span><span style="color:#ce5c00;font-weight:bold">::</span><span style="color:#c4a000">PATHS</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#000;font-weight:bold">[</span>
+        <span style="color:#000">__DIR__</span> <span style="color:#ce5c00;font-weight:bold">.</span> <span style="color:#4e9a06">&#39;/src/App/Controller&#39;</span>
+    <span style="color:#000;font-weight:bold">]);</span>
+    <span style="color:#000">$parameters</span><span style="color:#ce5c00;font-weight:bold">-&gt;</span><span style="color:#c4a000">set</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">Option</span><span style="color:#ce5c00;font-weight:bold">::</span><span style="color:#c4a000">IMPORT_SHORT_CLASSES</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87;font-weight:bold">true</span><span style="color:#000;font-weight:bold">);</span>
+    <span style="color:#000">$parameters</span><span style="color:#ce5c00;font-weight:bold">-&gt;</span><span style="color:#c4a000">set</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">Option</span><span style="color:#ce5c00;font-weight:bold">::</span><span style="color:#c4a000">AUTO_IMPORT_NAMES</span><span style="color:#000;font-weight:bold">,</span> <span style="color:#204a87;font-weight:bold">true</span><span style="color:#000;font-weight:bold">);</span>
+
+    <span style="color:#000">$services</span> <span style="color:#ce5c00;font-weight:bold">=</span> <span style="color:#000">$containerConfigurator</span><span style="color:#ce5c00;font-weight:bold">-&gt;</span><span style="color:#c4a000">services</span><span style="color:#000;font-weight:bold">();</span>
+    <span style="color:#000">$services</span><span style="color:#ce5c00;font-weight:bold">-&gt;</span><span style="color:#c4a000">set</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">SymfonyYamlToAttributeRoutingRector</span><span style="color:#ce5c00;font-weight:bold">::</span><span style="color:#c4a000">class</span><span style="color:#000;font-weight:bold">)</span>
+        <span style="color:#ce5c00;font-weight:bold">-&gt;</span><span style="color:#c4a000">configure</span><span style="color:#000;font-weight:bold">([</span>
+            <span style="color:#000">SymfonyYamlToAttributeRoutingRector</span><span style="color:#ce5c00;font-weight:bold">::</span><span style="color:#c4a000">ROUTES</span> <span style="color:#ce5c00;font-weight:bold">=&gt;</span> <span style="color:#000">json_decode</span><span style="color:#000;font-weight:bold">(</span><span style="color:#000">file_get_contents</span><span style="color:#000;font-weight:bold">(</span><span style="color:#4e9a06">&#39;./routing-groups.json&#39;</span><span style="color:#000;font-weight:bold">),</span> <span style="color:#204a87;font-weight:bold">true</span><span style="color:#000;font-weight:bold">),</span>
+        <span style="color:#000;font-weight:bold">]);</span>
+<span style="color:#000;font-weight:bold">};</span>
+</code></pre></td></tr></table>
+</div>
+</div><p>As this done, dry run and run refactor</p>
+<div class="highlight"><div style="background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="1"><a style="outline: none; text-decoration:none; color:inherit" href="#1">1</a>
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f" id="2"><a style="outline: none; text-decoration:none; color:inherit" href="#2">2</a>
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre tabindex="0" style="background-color:#f8f8f8;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="language-shell" data-lang="shell">vendor/bin/rector process --dry-run --clear-cache
+vendor/bin/rector process --clear-cache
+</code></pre></td></tr></table>
+</div>
+</div><p>All refactoring is done in 27 seconds!
+Need just to clean up old YAML routing files, resolve priority route conflicts.</p>
+<p>Rector is a true lifesaver for repeating boring work.</p>
+
+        </div>
+        
+
+
+<div class="post-info">
+    
+        <div class="post-date dt-published">2022-02-08</div>
+    
+    
+    <a class="post-hidden-url u-url" href="https://klugekatze.github.io/posts/symfony-routing-from-yaml-to-attributes/">https://klugekatze.github.io/posts/symfony-routing-from-yaml-to-attributes/</a>
+    <a href="https://klugekatze.github.io/" class="p-name p-author post-hidden-author h-card" rel="me"></a>
+
+
+    <div class="post-taxonomies">
+        
+            
+                <ul class="post-tags">
+                    
+                        <li><a href="https://klugekatze.github.io/tags/symfony">#symfony</a></li>
+                    
+                        <li><a href="https://klugekatze.github.io/tags/rector">#rector</a></li>
+                    
+                        <li><a href="https://klugekatze.github.io/tags/refactoring">#refactoring</a></li>
+                    
+                </ul>
+        
+    </div>
+</div>
+
+    </article>
+
+    
+
+    
+        <div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+    
+    
+    
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "suntera-website" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+    
+
+    
+
+
+        </main>
+        
+            <footer class="common-footer">
+    
+    
+
+    <div class="common-footer-bottom">
+        
+        <div class="copyright">
+            <p>© 2022<br>
+            Powered by <a target="_blank" rel="noopener noreferrer" href="https://gohugo.io/">Hugo</a>, theme <a target="_blank" rel="noopener noreferrer" href="https://github.com/mitrichius/hugo-theme-anubis">Anubis</a>.<br>
+            
+            </p>  
+        </div> 
+
+        
+
+
+   
+    </div>
+
+    <p class="h-card vcard">
+
+    <a href=https://klugekatze.github.io/ class="p-name u-url url fn" rel="me"></a> 
+
+    
+
+    
+</p> 
+</footer>
+
+        
+    </div>
+</body>
+</html>
